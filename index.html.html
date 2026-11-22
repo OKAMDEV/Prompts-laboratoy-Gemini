@@ -1,0 +1,3318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laboratorio de Prompts para Gemini Pro</title>
+  <style>
+    /* =====================================================================
+       VARIABLES DE DISEÑO Y PALETA (100% VANILLA CSS, SIN DEPENDENCIAS)
+       ===================================================================== */
+    :root {
+      --bg: #f6f8fc;
+      --surface: #ffffff;
+      --surface-soft: #f1f5f9;
+      --surface-hover: #e2e8f0;
+      --border: #dde3ee;
+      --border-strong: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-light: #64748b;
+
+      /* Acentos estilo Gemini */
+      --primary: #3b5bdb;
+      --primary-hover: #2f49b8;
+      --primary-soft: #eef2ff;
+      --primary-border: #c7d2fe;
+
+      /* Colores suaves por cada una de las 6 preguntas */
+      --q1-main: #2563eb; --q1-soft: #eff6ff; --q1-border: #bfdbfe; --q1-text: #1e40af; /* Azul */
+      --q2-main: #7c3aed; --q2-soft: #f5f3ff; --q2-border: #ddd6fe; --q2-text: #5b21b6; /* Morado */
+      --q3-main: #059669; --q3-soft: #ecfdf5; --q3-border: #a7f3d0; --q3-text: #065f46; /* Esmeralda */
+      --q4-main: #d97706; --q4-soft: #fffbeb; --q4-border: #fde68a; --q4-text: #92400e; /* Ámbar */
+      --q5-main: #e11d48; --q5-soft: #fff1f2; --q5-border: #fecdd3; --q5-text: #9f1239; /* Rosa/Rojo */
+      --q6-main: #0891b2; --q6-soft: #ecfeff; --q6-border: #a5f3fc; --q6-text: #155e75; /* Cian/Teal */
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
+      --shadow-lg: 0 14px 32px rgba(15, 23, 42, 0.14);
+
+      --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, p {
+      margin: 0;
+    }
+
+    button, select, input {
+      font-family: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    @media (min-width: 640px) {
+      .container { padding: 0 24px; }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* =====================================================================
+       ENCABEZADO Y CONTROLES GLOBALES
+       ===================================================================== */
+    .site-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-inner {
+      padding: 14px 0 12px;
+    }
+
+    .header-top {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (min-width: 960px) {
+      .header-top {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #2563eb 0%, #4f46e5 55%, #059669 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(59, 91, 219, 0.25);
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    @media (min-width: 640px) {
+      .brand-title { font-size: 1.3rem; }
+    }
+
+    .brand-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Interruptor Modo Sencillo / Técnico */
+    .mode-switch {
+      display: inline-flex;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      padding: 4px;
+      border-radius: 12px;
+      gap: 4px;
+      max-width: 100%;
+    }
+
+    .mode-btn {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 7px 11px;
+      border-radius: 9px;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .mode-btn:hover {
+      color: var(--text);
+    }
+
+    .mode-btn.active-simple {
+      background: #ffffff;
+      color: var(--q3-text);
+      border-color: var(--q3-border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .mode-btn.active-tech {
+      background: #ffffff;
+      color: var(--primary);
+      border-color: var(--primary-border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .help-btn {
+      border: 1px solid var(--primary-border);
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 9px 13px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .help-btn:hover {
+      background: #e0e7ff;
+    }
+
+    /* Navegación de 3 Pestañas */
+    .tabs-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--surface-soft);
+    }
+
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      color: var(--text-muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+      padding: 9px 14px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.16s ease;
+      flex: 1 1 auto;
+      justify-content: center;
+    }
+
+    @media (min-width: 640px) {
+      .tab-btn { flex: 0 0 auto; }
+    }
+
+    .tab-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      background: var(--text);
+      color: #ffffff;
+      border-color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tab-sub {
+      font-weight: 500;
+      opacity: 0.82;
+      font-size: 0.78rem;
+      display: none;
+    }
+
+    @media (min-width: 768px) {
+      .tab-sub { display: inline; }
+    }
+
+    /* =====================================================================
+       CONTENIDO PRINCIPAL Y BANNER
+       ===================================================================== */
+    main {
+      flex: 1;
+      padding: 20px 0 40px;
+    }
+
+    .mode-banner {
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .mode-banner.simple {
+      background: var(--q3-soft);
+      border-color: var(--q3-border);
+      color: var(--q3-text);
+    }
+
+    .mode-banner.tech {
+      background: var(--primary-soft);
+      border-color: var(--primary-border);
+      color: #1e3a8a;
+    }
+
+    .mode-banner-icon {
+      font-size: 1.5rem;
+      line-height: 1.1;
+      flex-shrink: 0;
+    }
+
+    .mode-banner-title {
+      font-size: 0.92rem;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .mode-banner-text {
+      font-size: 0.84rem;
+      opacity: 0.92;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .section-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* =====================================================================
+       PRESETS CATEGORIZADOS (PESTAÑA 1)
+       ===================================================================== */
+    .presets-card {
+      padding: 16px;
+    }
+
+    .presets-header {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    @media (min-width: 768px) {
+      .presets-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .presets-title-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .presets-title {
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .combo-pill {
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+    }
+
+    .cat-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .cat-btn {
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 6px 11px;
+      border-radius: 999px;
+      transition: all 0.15s ease;
+    }
+
+    .cat-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+
+    .cat-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    .presets-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 560px) {
+      .presets-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (min-width: 960px) {
+      .presets-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (min-width: 1200px) {
+      .presets-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .preset-item {
+      text-align: left;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      border-radius: var(--radius-md);
+      padding: 11px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.16s ease;
+      position: relative;
+    }
+
+    .preset-item:hover {
+      border-color: var(--primary-border);
+      background: #f8faff;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .preset-item.active {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      box-shadow: 0 0 0 2px rgba(59, 91, 219, 0.16);
+    }
+
+    .preset-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .preset-name {
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.25;
+    }
+
+    .preset-cat-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .cat-familia { background: var(--q3-soft); color: var(--q3-text); border: 1px solid var(--q3-border); }
+    .cat-cotidiano { background: var(--q4-soft); color: var(--q4-text); border: 1px solid var(--q4-border); }
+    .cat-profesional { background: var(--q2-soft); color: var(--q2-text); border: 1px solid var(--q2-border); }
+
+    .preset-desc {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    /* =====================================================================
+       ALERTAS DE INCOHERENCIA
+       ===================================================================== */
+    .conflicts-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .conflict-box {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-left: 5px solid #d97706;
+      border-radius: var(--radius-md);
+      padding: 13px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    @media (min-width: 640px) {
+      .conflict-box {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .conflict-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .conflict-title {
+      font-size: 0.86rem;
+      font-weight: 800;
+      color: #78350f;
+    }
+
+    .conflict-msg {
+      font-size: 0.8rem;
+      color: #92400e;
+      margin-top: 2px;
+    }
+
+    .btn-fix {
+      border: none;
+      background: #d97706;
+      color: #ffffff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 8px 13px;
+      border-radius: 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s ease;
+    }
+
+    .btn-fix:hover { background: #b45309; }
+
+    /* =====================================================================
+       GRID PRINCIPAL DEL ARMADOR (IZQUIERDA SELECTORES / DERECHA PROMPT)
+       ===================================================================== */
+    .builder-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (min-width: 1024px) {
+      .builder-grid {
+        grid-template-columns: 5fr 7fr;
+      }
+    }
+
+    .controls-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+
+    .controls-title {
+      font-size: 0.96rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .btn-mini {
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 9px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-mini:hover {
+      background: var(--surface-soft);
+      color: var(--text);
+    }
+
+    .selectors-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .q-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left-width: 5px;
+      border-radius: var(--radius-md);
+      padding: 13px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .q-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .q-label {
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .q-count {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      flex-shrink: 0;
+    }
+
+    .q-select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+      background-color: #f8fafc;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .q-select:hover, .q-select:focus {
+      background-color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    .q-desc {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.42;
+    }
+
+    /* Clases de color por pregunta */
+    .q-color-1 { border-left-color: var(--q1-main); }
+    .q-color-2 { border-left-color: var(--q2-main); }
+    .q-color-3 { border-left-color: var(--q3-main); }
+    .q-color-4 { border-left-color: var(--q4-main); }
+    .q-color-5 { border-left-color: var(--q5-main); }
+    .q-color-6 { border-left-color: var(--q6-main); }
+
+    .badge-q1 { background: var(--q1-soft); color: var(--q1-text); border-color: var(--q1-border); }
+    .badge-q2 { background: var(--q2-soft); color: var(--q2-text); border-color: var(--q2-border); }
+    .badge-q3 { background: var(--q3-soft); color: var(--q3-text); border-color: var(--q3-border); }
+    .badge-q4 { background: var(--q4-soft); color: var(--q4-text); border-color: var(--q4-border); }
+    .badge-q5 { background: var(--q5-soft); color: var(--q5-text); border-color: var(--q5-border); }
+    .badge-q6 { background: var(--q6-soft); color: var(--q6-text); border-color: var(--q6-border); }
+
+    .bg-soft-q1 { background: var(--q1-soft); }
+    .bg-soft-q2 { background: var(--q2-soft); }
+    .bg-soft-q3 { background: var(--q3-soft); }
+    .bg-soft-q4 { background: var(--q4-soft); }
+    .bg-soft-q5 { background: var(--q5-soft); }
+    .bg-soft-q6 { background: var(--q6-soft); }
+
+    .dot-q1 { background: var(--q1-main); }
+    .dot-q2 { background: var(--q2-main); }
+    .dot-q3 { background: var(--q3-main); }
+    .dot-q4 { background: var(--q4-main); }
+    .dot-q5 { background: var(--q5-main); }
+    .dot-q6 { background: var(--q6-main); }
+
+    /* =====================================================================
+       PANEL DEL PROMPT ENSAMBLADO
+       ===================================================================== */
+    .prompt-card {
+      overflow: hidden;
+    }
+
+    .prompt-toolbar {
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (min-width: 640px) {
+      .prompt-toolbar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .prompt-heading {
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .prompt-sub {
+      font-size: 0.77rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .action-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      border: none;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 9px 14px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-primary.copied { background: #059669; }
+
+    .btn-secondary {
+      border: 1px solid var(--border-strong);
+      background: #ffffff;
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 8px 11px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-secondary:hover { background: var(--surface-soft); }
+
+    /* Interruptores del prompt */
+    .toggles-bar {
+      padding: 12px 16px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--surface-soft);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 18px;
+      align-items: center;
+    }
+
+    .switch-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.81rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .switch-input {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 36px;
+      height: 20px;
+      border-radius: 999px;
+      background: #cbd5e1;
+      position: relative;
+      transition: background 0.18s ease;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .switch-input::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      transition: transform 0.18s ease;
+    }
+
+    .switch-input:checked {
+      background: var(--primary);
+    }
+
+    .switch-input:checked::after {
+      transform: translateX(16px);
+    }
+
+    .switch-input.green:checked {
+      background: #059669;
+    }
+
+    .legend-bar {
+      padding: 8px 16px;
+      background: #fafbfd;
+      border-bottom: 1px solid var(--surface-soft);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .legend-chip {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .prompt-viewer {
+      padding: 16px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      max-height: 700px;
+      overflow-y: auto;
+    }
+
+    .prompt-block {
+      border: 1px solid var(--border);
+      border-left-width: 4px;
+      border-radius: var(--radius-md);
+      padding: 12px 13px;
+    }
+
+    .prompt-block-header {
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .prompt-block-tag {
+      font-size: 0.71rem;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .prompt-pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: #1e293b;
+    }
+
+    .prompt-plain-box {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    /* Tarjeta ¿Por qué se armó así? */
+    .why-card {
+      padding: 18px;
+    }
+
+    .why-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .why-title {
+      font-size: 0.98rem;
+      font-weight: 800;
+    }
+
+    .why-intro {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .why-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 640px) {
+      .why-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .why-item {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 11px 12px;
+    }
+
+    .why-item-head {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 4px;
+    }
+
+    .why-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .why-item-title {
+      font-size: 0.79rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .why-item-text {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.44;
+    }
+
+    /* =====================================================================
+       PESTAÑA 2: COMPARADOR A/B
+       ===================================================================== */
+    .compare-controls {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .compare-selects-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 768px) {
+      .compare-selects-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .compare-box-select {
+      border-radius: var(--radius-md);
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+    }
+
+    .compare-box-select.side-a {
+      background: var(--q1-soft);
+      border-color: var(--q1-border);
+    }
+
+    .compare-box-select.side-b {
+      background: var(--q3-soft);
+      border-color: var(--q3-border);
+    }
+
+    .compare-field-label {
+      display: block;
+      font-size: 0.73rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+    }
+
+    .fixed-details {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 11px 13px;
+      background: #f8fafc;
+    }
+
+    .fixed-details summary {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .fixed-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (min-width: 640px) {
+      .fixed-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (min-width: 960px) {
+      .fixed-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .insight-box {
+      background: var(--primary-soft);
+      border: 2px solid var(--primary-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+    }
+
+    .insight-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    @media (min-width: 768px) {
+      .insight-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .insight-col {
+      background: #ffffff;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      border: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+
+    .compare-columns {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    @media (min-width: 960px) {
+      .compare-columns { grid-template-columns: 1fr 1fr; }
+    }
+
+    .compare-pane {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .compare-pane-head {
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .compare-pane-head.a { background: var(--q1-soft); border-bottom-color: var(--q1-border); }
+    .compare-pane-head.b { background: var(--q3-soft); border-bottom-color: var(--q3-border); }
+
+    .compare-pane-body {
+      padding: 14px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .diff-block-changed {
+      border-radius: var(--radius-md);
+      padding: 12px;
+      border: 2px solid var(--q1-main);
+      background: #ffffff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .diff-block-changed.b {
+      border-color: var(--q3-main);
+    }
+
+    .diff-block-same {
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      opacity: 0.7;
+    }
+
+    .diff-pill {
+      font-size: 0.67rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--text);
+      color: #ffffff;
+    }
+
+    /* =====================================================================
+       PESTAÑA 3: MATRIZ DE LAS 30 PIEZAS
+       ===================================================================== */
+    .matrix-toolbar {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .matrix-top-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (min-width: 768px) {
+      .matrix-top-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .search-input {
+      width: 100%;
+      max-width: 300px;
+      padding: 9px 13px;
+      border-radius: 10px;
+      border: 1px solid var(--border-strong);
+      font-size: 0.85rem;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    .matrix-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .filter-chip {
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      color: var(--text-muted);
+      font-size: 0.77rem;
+      font-weight: 700;
+      padding: 6px 11px;
+      border-radius: 10px;
+      transition: all 0.15s ease;
+    }
+
+    .filter-chip:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+
+    .filter-chip.active {
+      background: var(--text);
+      color: #ffffff;
+      border-color: var(--text);
+    }
+
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 820px) {
+      .matrix-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .piece-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left-width: 5px;
+      border-radius: var(--radius-lg);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .piece-title {
+      font-size: 0.96rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-top: 6px;
+    }
+
+    .piece-explain {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+      background: #f8fafc;
+      border: 1px solid var(--surface-soft);
+      border-radius: 10px;
+      padding: 9px 11px;
+      line-height: 1.45;
+    }
+
+    .snippet-box {
+      margin-top: 10px;
+      background: #0f172a;
+      color: #f1f5f9;
+      border-radius: 12px;
+      padding: 11px 12px;
+      overflow-x: auto;
+    }
+
+    .snippet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+
+    .snippet-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      font-weight: 700;
+    }
+
+    .mini-fmt-group {
+      display: inline-flex;
+      background: #1e293b;
+      border-radius: 7px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .mini-fmt-btn {
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 5px;
+    }
+
+    .mini-fmt-btn.active {
+      background: #3b5bdb;
+      color: #ffffff;
+    }
+
+    .snippet-pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: #e2e8f0;
+    }
+
+    .piece-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      padding-top: 10px;
+      border-top: 1px solid var(--surface-soft);
+    }
+
+    /* =====================================================================
+       MODAL "¿CÓMO USAR ESTO?"
+       ===================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.56);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+      animation: fadeIn 0.18s ease-out;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 540px;
+      background: #ffffff;
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 18px 20px;
+      background: linear-gradient(135deg, #eef2ff 0%, #ecfdf5 100%);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .modal-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .modal-close {
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--text-muted);
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover { background: var(--surface-soft); color: var(--text); }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+    }
+
+    .step-num {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 0.88rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .step-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .modal-tip {
+      background: var(--q3-soft);
+      border: 1px solid var(--q3-border);
+      color: var(--q3-text);
+      border-radius: var(--radius-md);
+      padding: 11px 13px;
+      font-size: 0.8rem;
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* =====================================================================
+       PIE DE PÁGINA Y TOAST
+       ===================================================================== */
+    .site-footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 18px 0;
+      font-size: 0.78rem;
+      color: var(--text-light);
+    }
+
+    .footer-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    @media (min-width: 768px) {
+      .footer-inner {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 120;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 11px 16px;
+      border-radius: 12px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: fadeIn 0.2s ease-out;
+      max-width: calc(100vw - 32px);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== ENCABEZADO ==================== -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="header-top">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3l1.9 5.8L20 10.7l-6.1 1.9L12 18.5l-1.9-5.9L4 10.7l6.1-1.9L12 3z"></path>
+              <path d="M19 3l.7 2.1L22 5.8l-2.3.7L19 8.6l-.7-2.1L16 5.8l2.3-.7L19 3z"></path>
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">Laboratorio de Prompts para Gemini Pro</h1>
+            <p class="brand-subtitle">Aprende y arma hasta 13,500 combinaciones posibles de prompts — funciona 100% sin internet.</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="mode-switch" role="group" aria-label="Nivel de explicación">
+            <button id="btnModeSimple" type="button" class="mode-btn" onclick="setExplainMode('simple')">
+              🏡 Modo Sencillo (Familia)
+            </button>
+            <button id="btnModeTech" type="button" class="mode-btn" onclick="setExplainMode('tech')">
+              ⚙️ Modo Técnico (Ingeniero)
+            </button>
+          </div>
+          <button type="button" class="help-btn" onclick="openHelpModal()">
+            ❓ ¿Cómo usar esto?
+          </button>
+        </div>
+      </div>
+
+      <!-- Navegación 3 Pestañas -->
+      <nav class="tabs-nav" aria-label="Navegación principal">
+        <button id="tabBtnBuilder" type="button" class="tab-btn" onclick="setActiveTab('builder')">
+          🧩 Armador Interactivo <span class="tab-sub">(13,500 combinaciones)</span>
+        </button>
+        <button id="tabBtnCompare" type="button" class="tab-btn" onclick="setActiveTab('compare')">
+          🔀 Comparador A/B <span class="tab-sub">(Cambia 1 variable)</span>
+        </button>
+        <button id="tabBtnMatrix" type="button" class="tab-btn" onclick="setActiveTab('matrix')">
+          🧱 Matriz de las 30 Piezas
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ==================== CONTENIDO PRINCIPAL ==================== -->
+  <main class="container">
+    <!-- Banner pedagógico -->
+    <div id="modeBanner" class="mode-banner simple"></div>
+
+    <!-- ========================================================== -->
+    <!-- PESTAÑA 1: ARMADOR INTERACTIVO                             -->
+    <!-- ========================================================== -->
+    <section id="viewBuilder" class="section-stack">
+
+      <!-- Presets Categorizados -->
+      <div class="card presets-card">
+        <div class="presets-header">
+          <div class="presets-title-group">
+            <h2 class="presets-title">✨ Situaciones listas (Presets)</h2>
+            <span id="comboCounter" class="combo-pill">Combinación #1 de 13,500</span>
+          </div>
+          <div id="presetCatFilters" class="cat-filters"></div>
+        </div>
+        <div id="presetsGrid" class="presets-grid"></div>
+      </div>
+
+      <!-- Alertas de Incoherencia -->
+      <div id="conflictsContainer" class="conflicts-wrap hidden"></div>
+
+      <!-- Grid 2 Columnas -->
+      <div class="builder-grid">
+        <!-- Izquierda: Las 6 Preguntas -->
+        <div>
+          <div class="controls-header">
+            <h2 class="controls-title">Configura las 6 piezas (5×6×6×5×5×3)</h2>
+            <button type="button" class="btn-mini" onclick="randomizeBuilder()">🎲 Probar al azar</button>
+          </div>
+          <div id="builderControls" class="selectors-list"></div>
+        </div>
+
+        <!-- Derecha: Prompt Ensamblado + Explicación -->
+        <div class="section-stack">
+          <div class="card prompt-card">
+            <div class="prompt-toolbar">
+              <div>
+                <h2 class="prompt-heading">📋 Prompt listo para Gemini Pro</h2>
+                <p id="promptArchitectureNote" class="prompt-sub"></p>
+              </div>
+              <div class="action-btns">
+                <button id="btnCopyMain" type="button" class="btn-primary" onclick="copyBuilderPrompt()">
+                  📋 Copiar Prompt
+                </button>
+                <button type="button" class="btn-secondary" onclick="downloadPrompt('txt')">
+                  ⬇️ .txt
+                </button>
+                <button type="button" class="btn-secondary" onclick="downloadPrompt('md')">
+                  ⬇️ .md
+                </button>
+              </div>
+            </div>
+
+            <!-- Interruptores -->
+            <div class="toggles-bar">
+              <label class="switch-label">
+                <input id="toggleFillExample" type="checkbox" class="switch-input green" onchange="onToggleSwitch('fillExample', this.checked)" />
+                <span>Rellenar con ejemplo real</span>
+              </label>
+
+              <label class="switch-label">
+                <input id="toggleXmlFormat" type="checkbox" class="switch-input" checked onchange="onToggleSwitch('xmlFormat', this.checked)" />
+                <span id="xmlToggleLabel">Formato XML (óptimo Gemini)</span>
+              </label>
+
+              <label class="switch-label">
+                <input id="toggleColorBlocks" type="checkbox" class="switch-input" checked onchange="onToggleSwitch('colorBlocks', this.checked)" />
+                <span>Colorear por pregunta</span>
+              </label>
+            </div>
+
+            <!-- Leyenda de colores -->
+            <div id="colorLegend" class="legend-bar">
+              <span class="legend-chip badge-q1">P1. Entorno</span>
+              <span class="legend-chip badge-q2">P2. Caso de uso</span>
+              <span class="legend-chip badge-q3">P3. Insumo</span>
+              <span class="legend-chip badge-q4">P4. Formato</span>
+              <span class="legend-chip badge-q5">P5. Fricción</span>
+              <span class="legend-chip badge-q6">P6. Reutilización</span>
+            </div>
+
+            <!-- Salida del Prompt -->
+            <div id="promptOutputContainer" class="prompt-viewer"></div>
+          </div>
+
+          <!-- Tarjeta ¿Por qué se armó así? -->
+          <div class="card why-card">
+            <div class="why-header">
+              <h3 class="why-title">🧠 ¿Por qué se armó así?</h3>
+              <span id="whyModeBadge" class="legend-chip"></span>
+            </div>
+            <p id="whyOrderIntro" class="why-intro"></p>
+            <div id="whyReasonsGrid" class="why-grid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- PESTAÑA 2: COMPARADOR A/B                                  -->
+    <!-- ========================================================== -->
+    <section id="viewCompare" class="section-stack hidden">
+      <div class="card compare-controls">
+        <div class="presets-header" style="margin-bottom:0;">
+          <div>
+            <h2 class="presets-title">🔀 Comparador A/B: cambia 1 sola pregunta y observa qué cambia</h2>
+            <p id="compareSubtitle" class="prompt-sub"></p>
+          </div>
+          <div class="action-btns">
+            <button type="button" class="btn-secondary" onclick="syncCompareFromBuilder()">🔄 Traer del Armador</button>
+            <button type="button" class="btn-secondary" onclick="resetCompareDefault()">📘 Ejemplo base (P3)</button>
+          </div>
+        </div>
+
+        <div class="compare-selects-grid">
+          <div class="compare-box-select">
+            <label for="compareQuestionSelect" class="compare-field-label">Pregunta a variar</label>
+            <select id="compareQuestionSelect" class="q-select" onchange="onCompareQuestionChange(this.value)"></select>
+          </div>
+          <div class="compare-box-select side-a">
+            <label for="compareOptionASelect" class="compare-field-label" style="color:var(--q1-text);">Opción A</label>
+            <select id="compareOptionASelect" class="q-select" onchange="onCompareOptionChange('A', this.value)"></select>
+          </div>
+          <div class="compare-box-select side-b">
+            <label for="compareOptionBSelect" class="compare-field-label" style="color:var(--q3-text);">Opción B</label>
+            <select id="compareOptionBSelect" class="q-select" onchange="onCompareOptionChange('B', this.value)"></select>
+          </div>
+        </div>
+
+        <details class="fixed-details">
+          <summary>📌 Ver o editar las 5 preguntas que permanecen fijas</summary>
+          <div id="compareFixedControls" class="fixed-grid"></div>
+        </details>
+      </div>
+
+      <!-- Recuadro comparativo -->
+      <div id="compareConclusionBox" class="insight-box"></div>
+
+      <!-- Prompts Lado a Lado -->
+      <div class="compare-columns">
+        <div class="card compare-pane">
+          <div class="compare-pane-head a">
+            <div>
+              <div style="font-size:0.7rem;font-weight:800;color:var(--q1-text);text-transform:uppercase;">Versión A</div>
+              <div id="compareTitleA" style="font-size:0.9rem;font-weight:800;"></div>
+            </div>
+            <button type="button" class="btn-secondary" onclick="copyComparePrompt('A')">📋 Copiar A</button>
+          </div>
+          <div id="comparePromptA" class="compare-pane-body"></div>
+        </div>
+
+        <div class="card compare-pane">
+          <div class="compare-pane-head b">
+            <div>
+              <div style="font-size:0.7rem;font-weight:800;color:var(--q3-text);text-transform:uppercase;">Versión B</div>
+              <div id="compareTitleB" style="font-size:0.9rem;font-weight:800;"></div>
+            </div>
+            <button type="button" class="btn-secondary" onclick="copyComparePrompt('B')">📋 Copiar B</button>
+          </div>
+          <div id="comparePromptB" class="compare-pane-body"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- PESTAÑA 3: MATRIZ DE LAS 30 PIEZAS                         -->
+    <!-- ========================================================== -->
+    <section id="viewMatrix" class="section-stack hidden">
+      <div class="card matrix-toolbar">
+        <div class="matrix-top-row">
+          <div>
+            <h2 class="presets-title">🧱 Matriz de las 30 Piezas Modulares</h2>
+            <p id="matrixSubtitle" class="prompt-sub"></p>
+          </div>
+          <input
+            id="matrixSearchInput"
+            type="text"
+            class="search-input"
+            placeholder="Buscar pieza, ejemplo o palabra..."
+            oninput="renderMatrix()"
+          />
+        </div>
+        <div id="matrixFilters" class="matrix-filters"></div>
+      </div>
+
+      <div id="matrixGrid" class="matrix-grid"></div>
+    </section>
+  </main>
+
+  <!-- ==================== PIE DE PÁGINA ==================== -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>Laboratorio de Prompts para Gemini Pro · 100% offline en un solo archivo HTML (5×6×6×5×5×3 = 13,500 combinaciones).</span>
+      <span>Regla de oro: <strong>Contexto primero, instrucciones claras después</strong>.</span>
+    </div>
+  </footer>
+
+  <!-- ==================== MODAL ¿CÓMO USAR ESTO? ==================== -->
+  <div id="helpModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle" onclick="onModalBackdropClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="helpModalTitle" class="modal-title">👋 ¿Cómo usar este laboratorio en 3 pasos?</h2>
+        <button type="button" class="modal-close" aria-label="Cerrar guía" onclick="closeHelpModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-title">Elige tu caso o arma el tuyo</div>
+            <p class="step-desc">En la parte de arriba haz clic en una tarjeta de <strong>"Situaciones listas"</strong> (por ejemplo: Negocio de comida, Maestra, Taxista o Menú semanal) o cambia cualquiera de las 6 cajitas de colores a tu gusto.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-title">Copia el prompt con un botón</div>
+            <p class="step-desc">Presiona el botón azul <strong>"📋 Copiar Prompt"</strong>. Si las etiquetas como <code>&lt;contexto&gt;</code> te parecen raras, apaga el botón <strong>"Formato XML"</strong> para verlo en español normal.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-title">Pégalo en Gemini y rellena lo que está entre [CORCHETES]</div>
+            <p class="step-desc">Abre la app o página de <strong>Gemini</strong>, pega el texto, cambia únicamente tus datos donde veas <code>[CORCHETES]</code> (si usaste plantilla) y presiona enviar. ¡Listo!</p>
+          </div>
+        </div>
+
+        <div class="modal-tip">
+          💡 <strong>Funciona sin internet:</strong> Puedes guardar este archivo <code>.html</code> en tu celular o compu y enviárselo a cualquier familiar por WhatsApp. Solo tienen que tocarlo para abrirlo en Chrome o Safari.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" onclick="closeHelpModal()">¡Entendido, vamos a probar!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST ==================== -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite">
+    <span id="toastIcon">✅</span>
+    <span id="toastMsg">Listo</span>
+  </div>
+
+  <!-- ==================== LÓGICA JAVASCRIPT ==================== -->
+  <script>
+    'use strict';
+
+    // =========================================================================
+    // 1. DEFINICIÓN EXACTA DE LAS 6 PREGUNTAS Y 30 PIEZAS (5x6x6x5x5x3 = 13,500)
+    // =========================================================================
+    const QUESTIONS = [
+      {
+        key: 'env',
+        num: 1,
+        shortTitle: 'Entorno',
+        fullTitle: 'P1. Entorno donde usas Gemini',
+        icon: '🌐',
+        options: [
+          {
+            id: 'web',
+            label: 'Web / App de Gemini',
+            simpleDesc: 'El chat normal de Gemini en tu celular o computadora. Todo va ordenado en un solo mensaje.',
+            techDesc: 'Interfaz conversacional estándar sin campo System separado; encapsula contexto y directivas en el turno de usuario.',
+            whySimple: 'Como estás en el chat normal, le damos todo acomodado en un solo mensaje para que entienda a la primera sin perderse.',
+            whyTech: 'En la app Web/Móvil todo vive en el turno de usuario; separar datos y reglas con etiquetas XML mejora la atención y evita confusión entre instrucciones y contenido.',
+            xml: `<entorno>\nUsa esta instrucción de forma completa en este chat (Web/App de Gemini), sin asumir memoria de conversaciones anteriores.\n</entorno>`,
+            simple: `CÓMO RESPONDER EN ESTE CHAT:\nResuelve esta petición de forma completa en esta misma conversación, sin asumir datos de chats anteriores.`
+          },
+          {
+            id: 'gems',
+            label: 'Gems personalizados',
+            simpleDesc: 'Un asistente "a tu medida" al que le guardas sus reglas una sola vez para usarlo todos los días.',
+            techDesc: 'Asistente persistente en Gemini con instrucciones fijas reutilizables y conocimiento adjunto por sesión.',
+            whySimple: 'Un Gem es como un ayudante con manual fijo: guardas estas reglas una vez y después solo le escribes tu tarea del día.',
+            whyTech: 'Divide el diseño en un contrato persistente (instrucciones del Gem) y una entrada ligera por sesión, manteniendo consistencia de rol y formato.',
+            xml: `<instrucciones_gem>\nGuarda este bloque en la configuración de tu Gem. Mantén este rol, tono y reglas en cada nueva conversación con el usuario.\n</instrucciones_gem>`,
+            simple: `REGLAS FIJAS PARA TU GEM (Guárdalas en la configuración del Gem):\nMantén este mismo rol, tono y forma de trabajo cada vez que inicie un chat nuevo contigo.`
+          },
+          {
+            id: 'aistudio',
+            label: 'Google AI Studio (System Instructions)',
+            simpleDesc: 'La versión avanzada de Google donde separas las "reglas del jefe" de los documentos que subes.',
+            techDesc: 'Consola de desarrollo con canal dedicado para System Instructions, ventana de contexto completa y control de temperatura.',
+            whySimple: 'AI Studio tiene una cajita especial para las reglas fijas y otra para tus archivos; al separarlas, Gemini obedece con mucha más precisión.',
+            whyTech: 'Aprovecha el canal System Instructions de máxima prioridad para directivas e inyecta los insumos en el User Prompt; sugiere temperatura baja (0.1–0.3) en tareas analíticas.',
+            xml: `<system_instructions>\n[Colocar en el campo "System Instructions" de Google AI Studio. Temperatura sugerida: 0.2]\nAplica estas directivas con prioridad absoluta sobre el estilo conversacional predeterminado.\n</system_instructions>`,
+            simple: `INSTRUCCIONES DE SISTEMA (Pegar en "System Instructions" de Google AI Studio):\nSigue estas reglas al pie de la letra en cada respuesta. (Tip: usa temperatura baja ~0.2 para mayor precisión).`
+          },
+          {
+            id: 'ide',
+            label: 'Integración en IDE / Desarrollo',
+            simpleDesc: 'Gemini trabajando dentro de tu editor de programación viendo directamente tus carpetas y archivos.',
+            techDesc: 'Agente embebido en entorno de desarrollo con visibilidad de workspace, dependencias y diagnósticos de compilación.',
+            whySimple: 'Como Gemini puede ver los archivos de tu proyecto, le pedimos que respete tu estructura actual y te diga exactamente qué archivo cambiar.',
+            whyTech: 'Optimizado para contexto de repositorio: obliga a respetar convenciones del workspace, versiones de SDK/dependencias y rutas exactas de archivo.',
+            xml: `<entorno_ide>\nOpera respetando el stack, versiones de dependencias y estructura de carpetas del workspace actual. Especifica la ruta exacta de cada archivo modificado.\n</entorno_ide>`,
+            simple: `REGLAS PARA EL EDITOR DE CÓDIGO:\nRespeta la estructura, librerías y estilo del proyecto abierto. Indica siempre el nombre exacto de cada archivo a modificar.`
+          },
+          {
+            id: 'deepresearch',
+            label: 'Deep Research',
+            simpleDesc: 'El modo "investigador" donde Gemini busca en decenas de sitios de internet y te arma un reporte con enlaces.',
+            techDesc: 'Agente de investigación web multi-paso que consulta fuentes primarias y sintetiza informes con citas verificables.',
+            whySimple: 'Como Gemini va a buscar en internet por su cuenta, le decimos qué fechas tomar en cuenta y que prefiera fuentes confiables en vez de anuncios.',
+            whyTech: 'En Deep Research conviene acotar ventana temporal, priorizar fuentes primarias/documentación oficial sobre blogs patrocinados y listar preguntas de investigación específicas.',
+            xml: `<alcance_investigacion>\n- Ventana temporal: prioriza precios, datos y opciones vigentes de los últimos [12 MESES].\n- Calidad de fuentes: prioriza sitios oficiales, reportes confiables y reseñas verificables sobre anuncios o blogs patrocinados.\n</alcance_investigacion>`,
+            simple: `REGLAS DE INVESTIGACIÓN EN INTERNET:\n- Busca información y precios actuales (últimos [12 MESES]).\n- Prefiere páginas oficiales y fuentes confiables en lugar de anuncios o artículos patrocinados.`
+          }
+        ]
+      },
+      {
+        key: 'usecase',
+        num: 2,
+        shortTitle: 'Caso de uso',
+        fullTitle: 'P2. Caso de uso principal',
+        icon: '🎯',
+        options: [
+          {
+            id: 'codigo',
+            label: 'Arquitectura o depuración de código',
+            simpleDesc: 'Encontrar por qué falla un programa o diseñar cómo construirlo limpio y sin errores.',
+            techDesc: 'Diagnóstico de causa raíz, refactorización bajo principios de arquitectura limpia y análisis de casos borde.',
+            whySimple: 'Le pedimos que actúe como un programador experimentado que primero encuentra la raíz del problema antes de cambiar código al azar.',
+            whyTech: 'Impone diagnóstico de causa raíz, respeto a contratos/interfaces públicas y cobertura explícita de edge cases antes de generar código.',
+            xml: `<rol>\nActúa como un Ingeniero de Software Senior especialista en [LENGUAJE_O_STACK] y arquitectura limpia.\n</rol>\n<tarea>\n1. Identifica la causa raíz del problema o cuello de botella en [MODULO_O_SISTEMA].\n2. Propón una solución limpia y mantenible respetando las restricciones técnicas.\n3. Lista los casos borde críticos y pruebas necesarias para validarla.\n</tarea>`,
+            simple: `TU ROL:\nActúa como un programador senior especialista en [LENGUAJE_O_STACK].\n\nTU TAREA:\n1. Encuentra la causa real del problema en [MODULO_O_SISTEMA].\n2. Propón una solución ordenada y fácil de mantener.\n3. Indica qué pruebas debo hacer para asegurarme de que no falle.`
+          },
+          {
+            id: 'documentos',
+            label: 'Análisis de documentos largos',
+            simpleDesc: 'Revisar contratos, reglamentos o PDFs extensos para sacar lo importante sin leer cien páginas a mano.',
+            techDesc: 'Auditoría sobre ventana de contexto extensa con grounding estricto y trazabilidad por sección/página.',
+            whySimple: 'Le indicamos que revise únicamente el documento que subimos y nos diga en qué página está cada punto importante o peligroso.',
+            whyTech: 'Explota la ventana de contexto larga de Gemini Pro exigiendo citas exactas (sección/página) y anclaje exclusivo al corpus adjunto.',
+            xml: `<rol>\nActúa como un analista documental experto en [TIPO_DE_DOCUMENTO].\n</rol>\n<tarea>\nRevisa únicamente el material adjunto para responder:\n1. [PREGUNTA_O_CRITERIO_1]\n2. [PREGUNTA_O_CRITERIO_2]\n3. Cláusulas de riesgo, requisitos obligatorios o costos ocultos.\nIndica siempre la sección y número de página exacto de cada hallazgo.\n</tarea>`,
+            simple: `TU ROL:\nActúa como un analista experto revisando [TIPO_DE_DOCUMENTO].\n\nTU TAREA:\nLee únicamente el documento entregado y responde:\n1. [PREGUNTA_O_CRITERIO_1]\n2. [PREGUNTA_O_CRITERIO_2]\n3. Riesgos, letras pequeñas o requisitos obligatorios.\nAnota siempre en qué página o sección viene cada dato.`
+          },
+          {
+            id: 'estudio',
+            label: 'Aprendizaje / estudio guiado',
+            simpleDesc: 'Aprender un tema nuevo paso a paso, con ejemplos de la vida diaria y preguntas de repaso.',
+            techDesc: 'Diseño pedagógico activo con andamiaje progresivo, analogías concretas y evaluación formativa.',
+            whySimple: 'Le pedimos que sea como un buen maestro paciente: explica con ejemplos sencillos y te hace preguntas cortas para confirmar que sí quedó claro.',
+            whyTech: 'Aplica aprendizaje activo: calibra complejidad al nivel del estudiante, obliga a usar ejemplos concretos y cierra con recuperación activa (flashcards/ejercicios).',
+            xml: `<rol>\nActúa como un tutor experto en [TEMA_DE_ESTUDIO], especializado en explicar con claridad a nivel [NIVEL_ACTUAL].\n</rol>\n<tarea>\nGuíame para comprender [SUBTEMA_CONCRETO]:\n1. Explica la idea principal con una analogía cotidiana y un ejemplo práctico.\n2. Desglosa los puntos clave en pasos fáciles de recordar.\n3. Incluye [CANTIDAD] preguntas prácticas de repaso.\n</tarea>`,
+            simple: `TU ROL:\nActúa como un buen maestro de [TEMA_DE_ESTUDIO] que explica claro para nivel [NIVEL_ACTUAL].\n\nTU TAREA:\nAyúdame a entender [SUBTEMA_CONCRETO]:\n1. Explícalo con una comparación de la vida diaria y un ejemplo práctico.\n2. Resume los pasos o ideas principales.\n3. Dame [CANTIDAD] preguntas cortas para practicar.`
+          },
+          {
+            id: 'contenido',
+            label: 'Generación de contenido, clases o ventas',
+            simpleDesc: 'Crear textos atractivos para vender por WhatsApp, planear una clase, o explicar servicios a clientes.',
+            techDesc: 'Redacción orientada a audiencia específica con propuesta de valor clara, tono natural y estructura lista para publicar o impartir.',
+            whySimple: 'Le decimos exactamente para quién es el mensaje (clientes, alumnos o papás) para que escriba natural y útil, no como robot.',
+            whyTech: 'Define audiencia objetivo, canal de entrega y objetivo de conversión/aprendizaje, eliminando clichés genéricos de marketing o redacción robótica.',
+            xml: `<rol>\nActúa como un especialista creativo en [AREA_O_OFICIO] enfocado en comunicación clara y práctica para [AUDIENCIA].\n</rol>\n<tarea>\nGenera el material solicitado para [OBJETIVO_DE_CONTENIDO_O_CLASE]:\n1. Adapta el lenguaje para que suene cercano, natural y convincente en México.\n2. Incluye ejemplos concretos, guiones o actividades listas para usar hoy mismo.\n3. Evita frases robóticas o exageradas.\n</tarea>`,
+            simple: `TU ROL:\nActúa como un especialista práctico en [AREA_O_OFICIO] que sabe comunicarse muy bien con [AUDIENCIA].\n\nTU TAREA:\nPrepara material listo para usar hoy sobre [OBJETIVO_DE_CONTENIDO_O_CLASE]:\n1. Usa español natural y cercano (nada de frases robóticas).\n2. Incluye ejemplos, textos o actividades concretas listas para aplicar.`
+          },
+          {
+            id: 'estrategia',
+            label: 'Lluvia de ideas crítica / negocio / planeación',
+            simpleDesc: 'Organizar un negocio, menú, presupuesto o proyecto viendo tanto buenas ideas como posibles problemas.',
+            techDesc: 'Planeación estratégica y evaluación crítica (trade-offs, márgenes, riesgos Pre-Mortem y acciones de alto impacto).',
+            whySimple: 'Además de darte buenas ideas, le pedimos que revise números, tiempos y riesgos para que el plan funcione de verdad en la práctica.',
+            whyTech: 'Combina generación de alternativas con restricción de recursos, análisis de rentabilidad/riesgos y priorización de acciones ejecutables.',
+            xml: `<rol>\nActúa como un asesor práctico de planeación y negocios especializado en [TIPO_DE_NEGOCIO_O_PROYECTO].\n</rol>\n<tarea>\nAnaliza mi situación y ayúdame a decidir sobre [META_O_DECISION]:\n1. Propón opciones concretas ajustadas a mis recursos y tiempo real.\n2. Señala riesgos, costos ocultos o errores comunes antes de ejecutar.\n3. Recomienda el mejor primer paso accionable para esta semana.\n</tarea>`,
+            simple: `TU ROL:\nActúa como un asesor práctico y honesto en [TIPO_DE_NEGOCIO_O_PROYECTO].\n\nTU TAREA:\nAyúdame a planear y decidir sobre [META_O_DECISION]:\n1. Dame opciones realistas que sí se puedan cumplir con mi tiempo y presupuesto.\n2. Avísame qué puede salir mal o qué gastos ocultos cuidar.\n3. Dime cuál es el mejor primer paso para empezar hoy.`
+          },
+          {
+            id: 'automatizacion',
+            label: 'Automatización y extracción de datos',
+            simpleDesc: 'Ordenar cuentas diarias, pedidos, notas o recibos desordenados en datos claros y sin errores.',
+            techDesc: 'Extracción determinista, normalización y clasificación estructurada de entradas no estructuradas.',
+            whySimple: 'Le enseñamos a tomar tus notas rápidas o mensajes sueltos y acomodarlos con cuentas exactas para que no tengas que hacerlo a mano.',
+            whyTech: 'Enfoca el modelo en determinismo, taxonomía cerrada, cálculo paso a paso verificable y manejo explícito de valores faltantes (null).',
+            xml: `<rol>\nActúa como un asistente preciso de organización, cálculo y extracción de datos para [PROCESO_O_REGISTRO].\n</rol>\n<tarea>\nProcesa la información entregada sin inventar cifras:\n1. Extrae y clasifica cada dato relevante en sus campos correspondientes.\n2. Verifica cualquier suma, resta o porcentaje paso a paso.\n3. Señala explícitamente cualquier dato faltante o ambiguo.\n</tarea>`,
+            simple: `TU ROL:\nActúa como un asistente muy ordenado para organizar cuentas y datos de [PROCESO_O_REGISTRO].\n\nTU TAREA:\n1. Saca y acomoda cada dato importante de lo que te escribí.\n2. Revisa bien todas las sumas y cuentas sin equivocarte.\n3. Si falta algún dato, avísame en lugar de adivinarlo.`
+          }
+        ]
+      },
+      {
+        key: 'input',
+        num: 3,
+        shortTitle: 'Tipo de insumo',
+        fullTitle: 'P3. Tipo de insumo o contexto que entregas',
+        icon: '📦',
+        options: [
+          {
+            id: 'texto_breve',
+            label: 'Texto breve',
+            simpleDesc: 'Un mensaje corto, una pregunta directa o tus datos anotados en unas cuantas líneas.',
+            techDesc: 'Entrada compacta de pocos tokens; requiere acotar alcance y declarar supuestos mínimos explícitos.',
+            whySimple: 'Como le das un texto cortito, lo ponemos al principio bien claro para que entienda tu situación exacta antes de responder.',
+            whyTech: 'Al tener baja densidad de contexto, situar el bloque de entrada al inicio fija las restricciones del problema y reduce respuestas genéricas.',
+            xml: `<contexto>\nInformación proporcionada:\n[ESCRIBE_AQUI_TU_SITUACION_PREGUNTA_O_DATOS_BREVES]\nRestricción principal: [PRESUPUESTO_TIEMPO_O_LIMITE].\n</contexto>`,
+            simple: `MI SITUACIÓN Y DATOS:\n[ESCRIBE_AQUI_TU_SITUACION_PREGUNTA_O_DATOS_BREVES]\nLímite o condición importante: [PRESUPUESTO_TIEMPO_O_LIMITE].`
+          },
+          {
+            id: 'archivos_extensos',
+            label: 'Archivos extensos o repositorios completos',
+            simpleDesc: 'PDFs largos, libros, apuntes completos de la escuela o carpetas enteras de archivos.',
+            techDesc: 'Contexto masivo (decenas/cientos de miles de tokens); aplica regla Gemini: archivos arriba, grounding estricto y citas de ubicación.',
+            whySimple: 'Cuando subes archivos grandes, los colocamos arriba y le pedimos que diga en qué página encontró cada dato para que no invente cosas.',
+            whyTech: 'Heurística clave de Gemini Pro: ubicar documentos largos antes de las instrucciones mejora la recuperación; añade cláusula [NO CONSTA] y referencia de archivo/página.',
+            xml: `<contexto_archivos>\n[ADJUNTAR AQUÍ TUS ARCHIVOS PDF, APUNTES LARGOS O REPOSITORIO COMPLETO]\nReglas de lectura:\n- Usa únicamente la información contenida en los archivos adjuntos.\n- Cita siempre el archivo, sección o número de página exacto.\n- Si un dato no aparece en el material, escribe: [NO CONSTA EN EL ARCHIVO].\n</contexto_archivos>`,
+            simple: `ARCHIVOS QUE SUBO:\n[ADJUNTAR AQUÍ TUS PDFS, DOCUMENTOS O CARPETA]\nReglas al leer mis archivos:\n- Responde basándote solo en estos archivos.\n- Indica en qué página o archivo encontraste cada dato.\n- Si algo no viene ahí, dime claramente "No aparece en el archivo".`
+          },
+          {
+            id: 'imagenes',
+            label: 'Capturas, fotos o diagramas',
+            simpleDesc: 'Fotos de productos, referencias de peinados, capturas de pantalla o dibujos.',
+            techDesc: 'Entrada multimodal visual nativa; exige localización espacial y política [ILEGIBLE] para evitar alucinaciones visuales.',
+            whySimple: 'Para que no te diga lo obvio ("es una foto bonita"), le pedimos que observe detalles clave y avise si algo se ve borroso.',
+            whyTech: 'Optimiza comprensión visual en Gemini Pro: suprime descripciones triviales, pide referencias espaciales concretas y prohíbe adivinar texto o detalles borrosos.',
+            xml: `<contexto_visual>\n[ADJUNTAR FOTO, CAPTURA DE PANTALLA O DIAGRAMA]\nReglas de análisis visual:\n- No describas lo obvio; enfócate en detalles útiles, diferencias técnicas o elementos accionables.\n- Señala zonas específicas de la imagen cuando hagas observaciones.\n- Si algún texto o detalle es borroso o poco visible, indícalo como [NO SE DISTINGUE CON CLARIDAD] sin adivinar.\n</contexto_visual>`,
+            simple: `FOTO O IMAGEN QUE SUBO:\n[ADJUNTAR AQUÍ TU FOTO, CAPTURA O IMAGEN]\nCómo revisar la imagen:\n- No me cuentes lo obvio; fíjate en los detalles importantes para mi tarea.\n- Si algo se ve borroso o no alcanza a verse bien, avísame en vez de adivinar.`
+          },
+          {
+            id: 'transcripciones',
+            label: 'Transcripciones o apuntes crudos',
+            simpleDesc: 'Notas desordenadas, mensajes copiados de WhatsApp o el texto escrito de una junta o clase.',
+            techDesc: 'Texto ruidoso no estructurado; exige filtrado de muletillas, limpieza de ruido y preservación de atribución.',
+            whySimple: 'Los mensajes rápidos y apuntes vienen revueltos; le pedimos que limpie el relleno y conserve solo los datos y acuerdos reales.',
+            whyTech: 'Instruye al modelo a descartar ruido conversacional, preservar atribución por hablante/cliente y distinguir hechos confirmados de dudas abiertas.',
+            xml: `<contexto_texto_crudo>\n[PEGAR AQUÍ MENSAJES DE WHATSAPP, APUNTES DESORDENADOS O TRANSCRIPCIÓN]\nReglas de limpieza:\n- Ignora muletillas, saludos y repeticiones innecesarias.\n- Conserva fielmente nombres, montos, fechas y quién dijo cada punto.\n- Separa acuerdos confirmados de temas pendientes.\n</contexto_texto_crudo>`,
+            simple: `MENSAJES O APUNTES DESORDENADOS:\n[PEGAR AQUÍ TUS MENSAJES, NOTAS O TRANSCRIPCIÓN]\nCómo ordenarlos:\n- Quita saludos y relleno que no sirva.\n- Respeta exactamente los nombres, fechas y precios que aparecen.\n- Separa lo que ya está confirmado de lo que falta definir.`
+          },
+          {
+            id: 'audiovideo',
+            label: 'Audio o video',
+            simpleDesc: 'Notas de voz, clases grabadas o videos cortos que Gemini puede escuchar y ver.',
+            techDesc: 'Ingesta multimodal audiovisual nativa en Gemini Pro; exige anclaje por timestamps [MM:SS] e integración audio+pantalla.',
+            whySimple: 'Le pedimos que anote el minuto y segundo exacto [MM:SS] de cada parte importante para que puedas encontrarlo rápido.',
+            whyTech: 'Aprovecha la comprensión audiovisual nativa de Gemini exigiendo marcas de tiempo [MM:SS], síntesis cruzada de audio y elementos en pantalla, y bandera [INAUDIBLE].',
+            xml: `<contexto_audiovisual>\n[ADJUNTAR ARCHIVO DE AUDIO O VIDEO]\nReglas de análisis multimedia:\n- Incluye la marca de tiempo exacta [MM:SS] junto a cada hallazgo o punto clave.\n- Si es video, combina lo que se escucha con lo que se muestra en pantalla.\n- Marca cualquier parte confusa como [INAUDIBLE / POCO CLARO] sin inventar palabras.\n</contexto_audiovisual>`,
+            simple: `AUDIO O VIDEO QUE SUBO:\n[ADJUNTAR AQUÍ TU AUDIO O VIDEO]\nCómo revisarlo:\n- Pon el minuto y segundo exacto [MM:SS] de cada punto importante.\n- Si es video, toma en cuenta tanto lo que dicen como lo que se ve en pantalla.\n- Si algo no se oye bien, dime "no se escucha claro" sin inventarlo.`
+          },
+          {
+            id: 'hilos_largos',
+            label: 'Hilos largos de varias iteraciones',
+            simpleDesc: 'Una charla larga donde ya intercambiaron muchos mensajes y no quieres que olvide lo acordado.',
+            techDesc: 'Sesión multi-turno extensa; inyecta un checkpoint explícito de estado vigente y decisiones cerradas contra context drift.',
+            whySimple: 'En pláticas largas es fácil que se le olviden cambios viejos; este pequeño resumen le refresca qué sigue vigente y qué ya descartamos.',
+            whyTech: 'Mitiga la deriva de contexto en conversaciones largas mediante un bloque de estado vigente, lista de descartes y objetivo exclusivo del turno.',
+            xml: `<estado_conversacion>\n- Acuerdos vigentes hasta ahora: [RESUMIR_LO_QUE_SI_SIGUE_APLICANDO].\n- Ya descartado (NO repetir): [LO_QUE_YA_CAMBIAMOS].\n- Ajuste específico de este mensaje: [LO_QUE_NECESITO_AHORA].\n</estado_conversacion>`,
+            simple: `RESUMEN PARA NO PERDER EL HILO:\n- Lo que sigue igual: [RESUMIR_LO_QUE_SI_SIGUE_APLICANDO].\n- Lo que ya descartamos (no repetir): [LO_QUE_YA_CAMBIAMOS].\n- Lo que quiero cambiar ahora: [LO_QUE_NECESITO_AHORA].`
+          }
+        ]
+      },
+      {
+        key: 'format',
+        num: 4,
+        shortTitle: 'Formato y tono',
+        fullTitle: 'P4. Formato y tono de salida',
+        icon: '🎨',
+        options: [
+          {
+            id: 'codigo_prod',
+            label: 'Código listo para producción',
+            simpleDesc: 'Código completo y ordenado, sin recortes ni huecos, listo para copiar y probar.',
+            techDesc: 'Salida ejecutable sin elisiones ("// ..."), con manejo de errores, nombre de archivo y casos de prueba verificables.',
+            whySimple: 'Evita que Gemini te dé el código incompleto o te diga "aquí termina tú el resto".',
+            whyTech: 'Prohíbe placeholders, exige bloques completos identificables por ruta de archivo, manejo de errores explícito y casos de prueba de entrada/salida.',
+            xml: `<formato_salida>\nEntrega exactamente estas 3 secciones:\n1. **Diagnóstico breve** (máximo 5 líneas).\n2. **Código completo listo para producción** (sin omitir bloques con "// resto aquí", con manejo de errores y ruta de archivo).\n3. **Pruebas sugeridas** (entrada esperada -> salida esperada).\n</formato_salida>`,
+            simple: `CÓMO ENTREGAR LA RESPUESTA:\n1. Diagnóstico corto (máximo 5 líneas).\n2. Código completo listo para usar (sin recortes ni "aquí completa tú") indicando el nombre del archivo.\n3. Lista de 3 pruebas rápidas para confirmar que funciona bien.`
+          },
+          {
+            id: 'markdown',
+            label: 'Markdown estructurado para notas',
+            simpleDesc: 'Apuntes limpios con títulos, viñetas y negritas, muy fáciles de leer o guardar en tus notas.',
+            techDesc: 'Markdown limpio con jerarquía H2/H3, énfasis escaneable y bloque final de síntesis listo para sistemas de notas (PKM).',
+            whySimple: 'En lugar de un texto enorme y cansado, te entrega un apunte bonito con títulos y puntos clave fáciles de repasar.',
+            whyTech: 'Estructura semántica en Markdown (encabezados H2/H3, viñetas, negritas de escaneo rápido y sección de repaso) lista para Obsidian, Notion o Google Docs.',
+            xml: `<formato_salida>\nEntrega la respuesta en Markdown limpio y bien organizado:\n- Usa títulos claros (## y ###), listas con viñetas y **palabras clave en negrita**.\n- Mantén párrafos cortos de máximo 3 líneas.\n- Cierra con una sección \`## Resumen accionable\` de máximo 4 puntos.\n</formato_salida>`,
+            simple: `CÓMO ENTREGAR LA RESPUESTA:\nOrdénalo como un apunte limpio y fácil de leer:\n- Usa títulos claros, listas con viñetas y resalta en **negrita** lo más importante.\n- Usa párrafos cortos (nada de bloques gigantes de texto).\n- Termina con un resumen práctico de máximo 4 puntos.`
+          },
+          {
+            id: 'tablas',
+            label: 'Tablas de decisión o comparativas',
+            simpleDesc: 'Cuadros claros con columnas para comparar opciones, precios o cuentas de un solo vistazo.',
+            techDesc: 'Tabla comparativa normalizada en Markdown seguida de recomendación ejecutiva fundamentada.',
+            whySimple: 'Ver todo acomodado en columnas te ahorra tiempo y te ayuda a decidir rápido sin leer párrafos largos.',
+            whyTech: 'Fuerza normalización de variables comparables en matriz Markdown y exige un veredicto concreto basado en restricciones.',
+            xml: `<formato_salida>\n1. Presenta una **tabla comparativa clara en Markdown** con columnas bien definidas según los criterios del caso.\n2. Debajo de la tabla, agrega una recomendación práctica directa (máximo 4 líneas) indicando la mejor opción o acción inmediata.\n</formato_salida>`,
+            simple: `CÓMO ENTREGAR LA RESPUESTA:\n1. Organiza la información principal en una **tabla clara** con columnas fáciles de comparar.\n2. Debajo de la tabla, dame una recomendación directa en máximo 4 líneas.`
+          },
+          {
+            id: 'json',
+            label: 'Salida estricta en JSON',
+            simpleDesc: 'Datos en formato puro de computadora, sin saludos ni explicaciones, listos para otro programa.',
+            techDesc: 'Contrato estricto JSON sin texto envolvente ni cercas markdown, estabilizado con esquema explícito y ejemplo Few-Shot.',
+            whySimple: 'Le prohibimos saludar o escribir texto extra para que los datos salgan limpios y puedan conectarse con otra app o hoja de cálculo.',
+            whyTech: 'Define schema estricto, prohíbe prosa y cercas ```json, e incorpora un ejemplo Few-Shot para garantizar parseo determinista.',
+            xml: `<formato_salida>\nResponde ÚNICAMENTE con un objeto JSON válido. Prohibido incluir saludos, explicaciones ni bloques \`\`\`json.\nSi un campo falta, asigna null.\nEsquema:\n{"entidad":"string|null","items":["string"],"monto_total":"number|null","fecha_iso":"YYYY-MM-DD|null","estado":"string"}\nEjemplo válido:\n{"entidad":"Cliente Ejemplo","items":["Producto A x2"],"monto_total":240,"fecha_iso":"2026-11-21","estado":"CONFIRMADO"}\n</formato_salida>`,
+            simple: `FORMATO ESTRICTO (SOLO JSON):\nDevuelve ÚNICAMENTE un JSON válido sin saludos, sin explicaciones y sin comillas de código. Si falta un dato pon null.\nEstructura: {"entidad":"texto|null","items":["texto"],"monto_total":"numero|null","fecha_iso":"AAAA-MM-DD|null","estado":"texto"}`
+          },
+          {
+            id: 'socratico',
+            label: 'Enfoque socrático / crítico (cuestiona premisas)',
+            simpleDesc: 'Te guía paso a paso haciéndote preguntas para que pienses y aprendas de verdad, en vez de darte todo masticado.',
+            techDesc: 'Diálogo socrático multi-turno con control de longitud, pistas progresivas y cuestionamiento activo de premisas.',
+            whySimple: 'En lugar de resolverte todo de golpe, va un paso a la vez y te hace una pregunta corta para asegurarse de que lo dominas.',
+            whyTech: 'Limita la salida por turno, bloquea la entrega prematura de la respuesta final e implementa ciclo explicación breve -> pregunta -> pista ante error.',
+            xml: `<formato_salida>\nUsa un enfoque socrático y crítico:\n- Avanza UN solo concepto o paso por turno (máximo 180 palabras por respuesta).\n- Cuestiona cualquier premisa débil o error de razonamiento antes de avanzar.\n- Si me equivoco, no me des la respuesta de inmediato: dame una pista para reintentar.\n- Cierra cada turno con UNA sola pregunta práctica.\n</formato_salida>`,
+            simple: `FORMA DE GUIARME (PASO A PASO):\n- No me des todo resuelto de golpe; avanza un solo paso a la vez (respuestas cortas).\n- Si ves un error en mi idea, señálamelo con respeto.\n- Si fallo una pregunta, dame primero una pista en lugar de la respuesta directa.\n- Termina siempre con UNA pregunta práctica para comprobar que entendí.`
+          }
+        ]
+      },
+      {
+        key: 'friction',
+        num: 5,
+        shortTitle: 'Fricción a eliminar',
+        fullTitle: 'P5. Mayor fricción que quieres eliminar',
+        icon: '🛡️',
+        options: [
+          {
+            id: 'relleno',
+            label: 'Respuestas genéricas o con relleno',
+            simpleDesc: 'Quitar saludos largos, frases vacías y consejos obvios que no sirven para tu caso real.',
+            techDesc: 'Supresión de boilerplate conversacional y generalidades en favor de concreción accionable desde la primera línea.',
+            whySimple: 'Le decimos claro: ve directo al grano desde la primera línea y dame ejemplos útiles en lugar de frases bonitas.',
+            whyTech: 'Elimina preámbulos, cierres redundantes y adjetivos vacíos; exige alta densidad informativa y ejemplos concretos.',
+            xml: `<reglas_calidad>\n- Cero relleno: empieza directamente con la respuesta útil en la primera línea. Prohibido saludar, halagar la pregunta o poner conclusiones obvias.\n- Concreción real: evita frases generales; usa cifras, pasos claros y ejemplos aterrizados a mi caso.\n</reglas_calidad>`,
+            simple: `REGLAS PARA IR AL GRANO:\n- Empieza directo con lo útil sin saludos largos ni frases de relleno.\n- Nada de consejos obvios o genéricos; dame pasos y ejemplos concretos para mi situación.`
+          },
+          {
+            id: 'olvido',
+            label: 'Pérdida de instrucciones en chats largos',
+            simpleDesc: 'Evitar que Gemini olvide tus reglas cuando la conversación ya lleva muchos mensajes.',
+            techDesc: 'Mitigación de instruction drift mediante reglas numeradas de alta prioridad y protocolo de auto-verificación previa.',
+            whySimple: 'Le pedimos que revise sus propias reglas antes de contestar cada vez, para que no se le olviden a mitad del chat.',
+            whyTech: 'Agrega jerarquía de persistencia y un self-check interno antes de imprimir cada turno para sostener la adherencia al formato.',
+            xml: `<reglas_calidad>\n- Persistencia estricta: mantén todas las reglas de formato, tono y alcance incluso tras muchos turnos de conversación.\n- Auto-verificación interna: antes de responder, confirma que cumpliste cada restricción; si falta algo, corrígelo antes de entregar la respuesta.\n</reglas_calidad>`,
+            simple: `REGLAS PARA QUE NO OLVIDE MIS INDICACIONES:\n- Mantén estas mismas reglas en toda la conversación aunque enviemos muchos mensajes.\n- Antes de contestar, revisa que hayas cumplido el formato y todos los puntos que te pedí.`
+          },
+          {
+            id: 'condescendencia',
+            label: 'Exceso de condescendencia (siempre te da la razón)',
+            simpleDesc: 'Evitar que siempre diga "¡qué gran idea!" aunque tu plan o dato tenga un error.',
+            techDesc: 'Mitigación de sycophancy (complacencia del modelo) exigiendo auditoría independiente de premisas y candor directo.',
+            whySimple: 'Le damos permiso total para decirte con respeto pero con honestidad si algo no cuadra o te puede salir mal.',
+            whyTech: 'Contrarresta el sesgo de adulación (RLHF sycophancy): exige verificar premisas antes de responder y señalar fallos con argumentos objetivos.',
+            xml: `<reglas_calidad>\n- Cero adulación (anti-sycophancy): no me des la razón por cortesía ni uses frases como "¡Excelente idea!".\n- Candor objetivo: si detectas un error de cálculo, un supuesto falso o un riesgo fuerte en mi premisa, señálalo primero con claridad antes de proponer soluciones.\n</reglas_calidad>`,
+            simple: `REGLAS DE HONESTIDAD DIRECTA:\n- No me des la razón solo por ser amable ni me adules.\n- Si mi idea tiene un fallo, un riesgo o una cuenta mal hecha, dímelo primero con claridad y respeto antes de proponer cambios.`
+          },
+          {
+            id: 'alucinaciones',
+            label: 'Errores técnicos o invención de datos',
+            simpleDesc: 'Evitar que invente respuestas, precios, citas o detalles cuando en realidad no los sabe.',
+            techDesc: 'Control anti-alucinación mediante grounding explícito, escape hatch ([NO VERIFICADO]) y separación entre hechos y supuestos.',
+            whySimple: 'Le enseñamos que vale mucho más decir "este dato no está confirmado" que inventar algo que suene bonito pero sea falso.',
+            whyTech: 'Introduce anclaje estricto y cláusula de escape explícita para cortar la extrapolación silenciosa en datos técnicos, citas y cifras.',
+            xml: `<reglas_calidad>\n- Cero invención: nunca inventes cifras, citas, páginas, APIs ni normas que no puedas confirmar.\n- Cláusula de escape: si falta información o no tienes certeza completa, escribe exactamente [NO VERIFICADO / FALTA INFORMACIÓN] y dime qué dato hace falta.\n- Distingue siempre entre hechos confirmados y supuestos.\n</reglas_calidad>`,
+            simple: `REGLAS PARA NO INVENTAR DATOS:\n- No inventes precios, citas, páginas ni datos técnicos si no estás seguro.\n- Si algo no aparece o no puedes confirmarlo, dime claramente "Este dato no está verificado" y qué necesitas para revisarlo.`
+          },
+          {
+            id: 'superficialidad',
+            label: 'Falta de profundidad o ejemplos prácticos',
+            simpleDesc: 'Evitar respuestas muy por encima que solo dan teoría bonita pero no enseñan cómo hacerlo de verdad.',
+            techDesc: 'Exigencia de rigor práctico: mecanismos subyacentes, ejemplos completos, excepciones y pasos listos para ejecutar.',
+            whySimple: 'Le pedimos que baje la teoría a tierra con ejemplos completos, advertencias reales y pasos claros que sí se puedan aplicar.',
+            whyTech: 'Eleva el piso de profundidad prohibiendo resúmenes triviales; exige justificar el porqué, cubrir casos límite y proveer ejemplos ejecutables.',
+            xml: `<reglas_calidad>\n- Profundidad práctica: evita respuestas superficiales o teoría abstracta sin aplicación.\n- Desarrolla cada punto clave explicando el "por qué", incluye ejemplos concretos listos para usar y señala excepciones o cuidados importantes.\n</reglas_calidad>`,
+            simple: `REGLAS DE PROFUNDIDAD PRÁCTICA:\n- No te quedes solo en teoría superficial.\n- Explica el porqué de cada recomendación, dame ejemplos reales listos para aplicar y avísame qué detalles cuidar.`
+          }
+        ]
+      },
+      {
+        key: 'reuse',
+        num: 6,
+        shortTitle: 'Reutilización',
+        fullTitle: 'P6. Nivel de reutilización',
+        icon: '♻️',
+        options: [
+          {
+            id: 'tactico',
+            label: 'Prompt táctico (copiar y usar ya)',
+            simpleDesc: 'Un mensaje rápido listo para copiar, pegar y resolver tu necesidad de hoy mismo.',
+            techDesc: 'Prompt de ejecución inmediata autocontenido para un solo uso con mínima fricción operativa.',
+            whySimple: 'Está pensado para usarse ahorita mismo: lo copias, lo pegas en Gemini y obtienes la respuesta directa.',
+            whyTech: 'Optimizado para ejecución en un solo turno; declara política de supuesto mínimo razonable para evitar repreguntas innecesarias.',
+            xml: `<ejecucion>\nEjecuta esta solicitud de inmediato con la información disponible. Si falta un detalle menor, asume la opción más práctica y aclárala en 1 línea.\n</ejecucion>`,
+            simple: `EJECUCIÓN INMEDIATA:\nResuelve esto ahora mismo con los datos que te di. Si falta algún detalle pequeño, usa la opción más práctica y avísame en una sola línea.`
+          },
+          {
+            id: 'plantilla',
+            label: 'Plantilla parametrizable con [VARIABLES]',
+            simpleDesc: 'Un molde reutilizable con espacios entre [CORCHETES] que solo cambias cada vez que lo vuelves a ocupar.',
+            techDesc: 'Plantilla modular parametrizada mediante placeholders [VARIABLE] para estandarizar flujos repetibles.',
+            whySimple: 'Guárdalo como tu formato favorito: cada vez que lo necesites, solo cambias lo que está entre [CORCHETES] y siempre te saldrá igual de bien.',
+            whyTech: 'Aísla las entradas dinámicas con marcadores explícitos [EN_MAYUSCULAS], ideal para bibliotecas personales de prompts y resultados consistentes.',
+            xml: `<parametros_plantilla>\n<!-- Reemplaza los campos entre [CORCHETES] cada vez que reutilices esta plantilla -->\n- Tema o caso actual: [DESCRIPCION_DEL_CASO]\n- Objetivo esperado: [RESULTADO_CONCRETO]\n- Límite o condición clave: [TIEMPO_PRESUPUESTO_O_NIVEL]\n</parametros_plantilla>`,
+            simple: `DATOS QUE CAMBIAS CADA VEZ (Rellena lo que está entre [CORCHETES]):\n- Mi caso de hoy: [DESCRIPCION_DEL_CASO]\n- Qué quiero lograr: [RESULTADO_CONCRETO]\n- Límite importante: [TIEMPO_PRESUPUESTO_O_NIVEL]`
+          },
+          {
+            id: 'sistema',
+            label: 'Instrucciones de sistema persistentes (Gems / AI Studio)',
+            simpleDesc: 'El "manual permanente" que guardas una vez en un Gem o AI Studio para no volver a escribir las reglas.',
+            techDesc: 'Arquitectura System/User persistente: separa identidad, invariantes y formato (System) de la entrada diaria (User).',
+            whySimple: 'Se divide en dos partes claras: arriba lo que guardas fijo una sola vez, y abajo el mensajito corto que enviarás cada día.',
+            whyTech: 'Divide el prompt en contrato de sistema inmutable (Gems / AI Studio System Instructions) y payload variable por turno.',
+            xml: `<modo_persistente>\nPARTE 1 (Sistema): Guarda el rol, reglas y formato anteriores como instrucción fija.\nPARTE 2 (Cada uso): En cada consulta nueva, solo recibirás el insumo o pregunta del día; aplica todas las reglas automáticamente.\n</modo_persistente>`,
+            simple: `CÓMO GUARDARLO PARA SIEMPRE:\n- Parte fija: guarda el rol, reglas y formato en tu Gem o en Google AI Studio.\n- Parte diaria: cada vez que lo abras, solo escríbeles tu caso o sube tu foto/archivo del día y seguirá estas reglas automáticamente.`
+          }
+        ]
+      }
+    ];
+
+    // Mapas rápidos
+    const Q_MAP = {};
+    QUESTIONS.forEach((q) => {
+      Q_MAP[q.key] = q;
+      q.optMap = {};
+      q.options.forEach((o, idx) => {
+        o.index = idx;
+        q.optMap[o.id] = o;
+      });
+    });
+
+    // =========================================================================
+    // 2. LOS 12 PRESETS CATEGORIZADOS CON EJEMPLOS REALES EN ESPAÑOL DE MÉXICO
+    // =========================================================================
+    const PRESETS = [
+      // --- FAMILIA Y OFICIOS (6) ---
+      {
+        id: 'comida_rapida',
+        category: 'familia',
+        catLabel: 'Familia y Oficios',
+        icon: '🍔',
+        name: 'Negocio de comida rápida',
+        shortDesc: 'Hamburguesas, crepas, burritos, hotdogs, malteadas y papas: combos rentables y estados de WhatsApp.',
+        combo: { env: 'web', usecase: 'estrategia', input: 'texto_breve', format: 'tablas', friction: 'relleno', reuse: 'plantilla' },
+        real: {
+          context: `Tengo un negocio local de comida rápida en México. Mi menú actual incluye:\n- Hamburguesa sencilla ($65) y doble ($90)\n- Hotdog sencillo ($35) y especial con tocino ($50)\n- Burrito de asada o pollo ($75)\n- Crepa dulce ($60) y salada ($75)\n- Papas a la francesa ($45) y malteadas ($55)\nMeta: subir el ticket promedio en viernes, sábado y domingo sin regalar mi margen de ganancia.`,
+          role: 'asesor práctico de negocios de comida rápida y marketing local en México',
+          task: `1. Diseña 3 combos rentables de fin de semana (individual, pareja y familiar/amigos) mezclando productos gancho con productos de mayor margen (papas, crepas o malteadas).\n2. Calcula el precio normal vs. precio combo, costo estimado aproximado y margen bruto sugerido para no perder dinero.\n3. Redacta 2 mensajes cortos y antojables para publicar en estados de WhatsApp y grupos locales de Facebook (sin sonar exagerado ni robótico).`,
+          formatExtra: `Incluye la tabla con estas columnas exactas: | Nombre del Combo | Qué incluye | Precio normal | Precio combo sugerido | Margen estimado | Por qué funciona |.\nDebajo de la tabla, entrega los 2 textos listos para copiar y pegar en WhatsApp/Facebook.`,
+          params: `- Mi negocio: [Puesto/Local de hamburguesas, crepas, burritos, hotdogs, malteadas y papas]\n- Días de promoción: [Viernes a domingo, horario de 6:00 PM a 11:00 PM]\n- Objetivo: [Aumentar ventas por pedido cuidando ganancia]`
+        }
+      },
+      {
+        id: 'maestra_primaria',
+        category: 'familia',
+        catLabel: 'Familia y Oficios',
+        icon: '👩‍🏫',
+        name: 'Maestra de primaria',
+        shortDesc: 'Planeación de clase de 50 min (4° grado), actividad lúdica económica y lista de cotejo.',
+        combo: { env: 'gems', usecase: 'contenido', input: 'texto_breve', format: 'markdown', friction: 'superficialidad', reuse: 'sistema' },
+        real: {
+          context: `Grado: 4° de primaria (grupo de 28 alumnos con distintos ritmos de aprendizaje).\nTema de hoy: Fracciones equivalentes.\nDuración de la clase: 50 minutos.\nRecursos disponibles: pizarrón, hojas recicladas, colores y tijeras (material económico que todos tienen).`,
+          role: 'especialista en pedagogía de educación primaria en México con experiencia práctica en aula',
+          task: `Diseña una planeación completa de 50 minutos dividida en Inicio (10 min), Desarrollo (25 min) y Cierre (15 min) que incluya:\n1. Una actividad lúdica en equipos usando material económico (tiras de papel o figuras recortables) para visualizar fracciones equivalentes.\n2. Ejercicios diferenciados: 2 retos extra para los alumnos que terminan rápido y 1 apoyo visual sencillo para quienes requieren refuerzo.\n3. Una lista de cotejo clara con 4 indicadores observables para evaluar al terminar la clase.`,
+          formatExtra: `Usa Markdown limpio con secciones: ## Datos de la sesión, ## Secuencia didáctica paso a paso, ## Actividad lúdica en equipos, ## Atención diferenciada y ## Lista de cotejo.`,
+          params: `- Uso permanente del Gem: cada vez que te indique grado, tema y duración, responde con esta misma estructura lista para aplicar en el salón.`
+        }
+      },
+      {
+        id: 'universitario',
+        category: 'familia',
+        catLabel: 'Familia y Oficios',
+        icon: '🎓',
+        name: 'Estudiante universitario',
+        shortDesc: 'Tutor socrático sobre PDFs de lecturas o apuntes para examen parcial citando páginas exactas.',
+        combo: { env: 'web', usecase: 'estudio', input: 'archivos_extensos', format: 'socratico', friction: 'alucinaciones', reuse: 'plantilla' },
+        real: {
+          context: `[ADJUNTAR AQUÍ EL PDF DE LECTURAS, CAPÍTULO O APUNTES DE TU MATERIA UNIVERSITARIA]\nExamen parcial en 3 días. Necesito dominar definiciones, relación entre conceptos y casos de aplicación sin memorizar a ciegas.\nRegla estricta: usa solo el PDF adjunto y cita siempre el número de página exacto; si un dato no viene en el PDF escribe [NO CONSTA EN EL PDF].`,
+          role: 'tutor universitario exigente y claro especializado en preparación de exámenes parciales',
+          task: `1. Primero propón un mapa breve de los 5 temas clave que vienen en el PDF adjunto (con sus páginas).\n2. Arranca de inmediato con el Tema 1 explicándolo en menos de 120 palabras con cita de página.\n3. Hazme UNA pregunta tipo examen parcial (no solo de memoria, sino de aplicación). Si me equivoco, no me regales la respuesta: dame una pista señalando la página donde debo revisar y pídeme intentar de nuevo.`,
+          formatExtra: `Mantén respuestas breves por turno (máximo 180 palabras), siempre con referencia exacta "(pág. X)" y una sola pregunta de examen al final.`,
+          params: `- Materia y parcial: [Ej. Administración / Derecho / Ingeniería - Primer Parcial]\n- Material base: [PDF adjunto de lecturas]\n- Meta: [Dominar preguntas de examen citando evidencia exacta]`
+        }
+      },
+      {
+        id: 'belleza_hogar',
+        category: 'familia',
+        catLabel: 'Familia y Oficios',
+        icon: '💅',
+        name: 'Ama de casa y ventas de belleza',
+        shortDesc: 'Pestañas y uñas: textos naturales para estados de WhatsApp, combos y bloque de 30 min.',
+        combo: { env: 'web', usecase: 'contenido', input: 'imagenes', format: 'tablas', friction: 'relleno', reuse: 'tactico' },
+        real: {
+          context: `[ADJUNTAR FOTOS DE TU MERCANCÍA NUEVA: pestañas postizas, pegamentos, gelish y decoración para uñas]\nVendo productos de belleza de manera recurrente por WhatsApp a conocidas, vecinas y clientas recomendadas, mientras atiendo mi casa. Quiero vender constante sin sonar como vendedora robot ni pasar pegada al celular todo el día.`,
+          role: 'asesora práctica de ventas locales de belleza por WhatsApp y organización del tiempo en casa',
+          task: `Con base en las fotos adjuntas (sin inventar marcas o tonos que no se distingan claramente):\n1. Crea 3 textos cortos, cálidos y naturales para estados de WhatsApp que despierten interés real sin sonar a anuncio robótico.\n2. Arma una tabla comparativa de combos (Paquete Básico vs. Paquete Completo) aprovechando lo que se ve en las fotos.\n3. Dame 3 respuestas cortas y amables listas para copiar cuando una clienta pregunta "precio", "tienes disponible" o "haces entregas".\n4. Sugiere una rutina simple de 30 minutos al día para publicar y responder mensajes sin descuidar los pendientes de casa.`,
+          formatExtra: `Presenta la tabla de paquetes con columnas: | Paquete | Productos incluidos | Ideal para | Gancho de venta |, seguida de los textos de WhatsApp y el mini plan de 30 minutos.`,
+          params: `- Uso inmediato para publicar hoy mismo con las fotos adjuntas.`
+        }
+      },
+      {
+        id: 'taxista',
+        category: 'familia',
+        catLabel: 'Familia y Oficios',
+        icon: '🚕',
+        name: 'Taxista',
+        shortDesc: 'Cuentas del turno, ganancia neta, fondo de mantenimiento y posibles causas de ruido en frenos.',
+        combo: { env: 'web', usecase: 'automatizacion', input: 'texto_breve', format: 'tablas', friction: 'relleno', reuse: 'tactico' },
+        real: {
+          context: `Registro del turno de hoy:\n"Hoy saqué $1,150 en total, cargué $320 de gasolina, pagué $350 de cuenta, gasté $90 de comida y noté un rechinido leve al frenar en bajadas."`,
+          role: 'asistente práctico de cuentas diarias para choferes de taxi con conocimientos básicos de mantenimiento preventivo automotriz',
+          task: `1. Calcula con exactitud mis cuentas del día: ingreso bruto, total de gastos, ganancia neta libre y una proyección si mantengo este promedio 6 días a la semana.\n2. Propón un monto realista diario para apartar en un "fondo de mantenimiento/refacciones" (por ejemplo 10% a 15% de la ganancia neta).\n3. Sobre el rechinido leve al frenar en bajadas, dame 3 posibles causas comunes (de la más sencilla a la más seria) y 3 preguntas concretas para hacerle al mecánico y no llegar a ciegas.`,
+          formatExtra: `Entrega una tabla clara con columnas: | Concepto | Monto diario (MXN) | Proyección semanal (6 días) | Nota |, y debajo una lista breve con las 3 causas del ruido y preguntas para el mecánico.`,
+          params: `- Cálculo directo del turno de hoy para llevar control claro sin hacer cuentas a mano.`
+        }
+      },
+      {
+        id: 'estilista',
+        category: 'familia',
+        catLabel: 'Familia y Oficios',
+        icon: '💇‍♀️',
+        name: 'Estilista (Salón de belleza)',
+        shortDesc: 'Evaluar foto de referencia (balayage sobre tinte negro), riesgos, alternativas y cuidados por WhatsApp.',
+        combo: { env: 'gems', usecase: 'contenido', input: 'imagenes', format: 'markdown', friction: 'superficialidad', reuse: 'sistema' },
+        real: {
+          context: `[ADJUNTAR FOTO DE REFERENCIA QUE TRAE LA CLIENTA + FOTO DEL CABELLO ACTUAL si la tienes]\nCaso de hoy: La clienta quiere un efecto balayage cenizo claro como el de la foto, pero trae historial de tinte negro cosmético aplicado hace meses en medios y puntas.`,
+          role: 'estilista profesional y colorista senior enfocado en salud capilar y comunicación honesta con clientas',
+          task: `1. Analiza la viabilidad real de lograr el efecto de la foto sobre cabello previamente teñido de negro y explica con claridad los riesgos de decoloración (manchas naranjas, elasticidad comprometida, quiebre).\n2. Propón 2 alternativas realistas y favorecedoras que respeten la integridad del cabello (por ejemplo, transición gradual en sesiones o tonos avellana/caramelo cálido) explicando cómo planteárselo a la clienta con seguridad.\n3. Redacta una guía breve, amable y clara de cuidados post-tinte/decoloración lista para enviarle por WhatsApp después de su cita.`,
+          formatExtra: `Organiza en Markdown con: ## Diagnóstico y riesgos, ## 2 Alternativas realistas para ofrecer en silla, ## Qué decirle a la clienta (guion corto) y ## Mensaje de cuidados post-tinte para WhatsApp.`,
+          params: `- Configuración permanente del Gem: cada vez que suba una foto de referencia e historial del cabello, entrega diagnóstico honesto, alternativas seguras y mensaje de cuidados para WhatsApp.`
+        }
+      },
+
+      // --- COTIDIANOS (3) ---
+      {
+        id: 'estudio_base',
+        category: 'cotidiano',
+        catLabel: 'Cotidiano',
+        icon: '📝',
+        name: 'Estudio guiado (Caso base)',
+        shortDesc: 'Aprender temas complejos (finanzas o inglés) en notas limpias de Markdown con repaso.',
+        combo: { env: 'web', usecase: 'estudio', input: 'texto_breve', format: 'markdown', friction: 'relleno', reuse: 'plantilla' },
+        real: {
+          context: `Tema que quiero dominar hoy: cómo funcionan los CETES y el interés compuesto frente a la inflación en México (o cómo usar condicionales en inglés conversacional sin trabarme).\nNivel actual: principiante-intermedio. Tiempo disponible: 15 minutos.`,
+          role: 'tutor experto capaz de transformar temas complejos en notas claras, memorables y prácticas',
+          task: `1. Explica el concepto central con una analogía cotidiana y un ejemplo numérico o de conversación real.\n2. Desglosa los 4 puntos esenciales sin tecnicismos innecesarios.\n3. Incluye 3 preguntas rápidas de autoevaluación con respuesta oculta/concisa para repasar mañana.`,
+          formatExtra: `Entrega una nota lista para guardar en Markdown con encabezados ##, viñetas, **términos clave en negrita** y una sección final \`## Preguntas de repaso\`.`,
+          params: `- Tema: [Finanzas personales / Inglés conversacional]\n- Nivel: [Principiante-intermedio]\n- Objetivo: [Entender y aplicar hoy mismo]`
+        }
+      },
+      {
+        id: 'menu_super',
+        category: 'cotidiano',
+        catLabel: 'Cotidiano',
+        icon: '🍳',
+        name: 'Menú semanal y lista del súper',
+        shortDesc: 'Menú casero y económico para 4 personas aprovechando lo que ya tienes + lista por pasillo.',
+        combo: { env: 'web', usecase: 'estrategia', input: 'texto_breve', format: 'tablas', friction: 'relleno', reuse: 'plantilla' },
+        real: {
+          context: `Familia de 4 personas en México. Presupuesto semanal moderado.\nIngredientes que ya tengo en casa y quiero aprovechar antes de que se echen a perder: 1 kg de pechuga de pollo, medio kilo de jitomate, 4 calabacitas, zanahorias, arroz, frijoles y avena.\nPreferencias: comidas caseras, nutritivas, sin embutidos procesados (sin jamón ni salchichas) y fáciles de preparar entre semana.`,
+          role: 'organizador experto de cocina casera mexicana, nutrición práctica y ahorro en el supermercado',
+          task: `1. Diseña un menú completo de lunes a viernes (desayuno, comida y cena) aprovechando primero los ingredientes que ya tengo en casa.\n2. Reutiliza preparaciones inteligentemente para no pasar horas cocinando diario.\n3. Genera una lista de compras del súper únicamente con lo que falta, ordenada por pasillo (Verduras y frutas, Carnes/Proteínas, Abarrotes, Lácteos).`,
+          formatExtra: `Presenta una tabla principal con columnas: | Día | Desayuno | Comida | Cena | Aprovecha de casa |, seguida de la lista del súper clasificada por pasillo con cantidades aproximadas.`,
+          params: `- Personas: [4 personas]\n- Lo que ya hay en refri/alacena: [Pollo, jitomate, calabacitas, zanahorias, arroz, frijoles, avena]\n- Regla: [Casero, económico y sin embutidos]`
+        }
+      },
+      {
+        id: 'viaje_familiar',
+        category: 'cotidiano',
+        catLabel: 'Cotidiano',
+        icon: '✈️',
+        name: 'Viaje o evento familiar',
+        shortDesc: 'Planear salida de fin de semana comparando transporte, hospedaje, actividades y costos ocultos.',
+        combo: { env: 'deepresearch', usecase: 'estrategia', input: 'texto_breve', format: 'tablas', friction: 'alucinaciones', reuse: 'tactico' },
+        real: {
+          context: `Queremos planear una salida familiar de fin de semana (sábado y domingo) saliendo desde Cuernavaca/Morelos para 4 adultos y 1 niño pequeño.\nPresupuesto total aproximado: $5,000 MXN.\nBuscamos comparar 3 destinos cercanos (ej. Tepoztlán, Taxco o Valle de Bravo / Tequesquitengo) considerando tiempos reales de traslado, estacionamiento, comida y actividades aptas para niño pequeño y adultos mayores.`,
+          role: 'investigador y planificador práctico de viajes familiares en México',
+          task: `1. Investiga precios y horarios actuales de transporte/casetas, hospedaje económico bien calificado y entradas en los 3 destinos.\n2. Compara pros, contras y viabilidad real con niño pequeño.\n3. Señala costos ocultos frecuentes (casetas ida/vuelta, estacionamientos, propinas, filas de fin de semana) sin inventar tarifas no verificadas.`,
+          formatExtra: `Entrega una tabla comparativa con columnas: | Destino | Traslado y casetas | Hospedaje 1 noche | Actividades familiares | Costos ocultos | Presupuesto estimado |, más una recomendación final clara.`,
+          params: `- Investigación inmediata con precios vigentes y fuentes confiables.`
+        }
+      },
+
+      // --- PROFESIONALES (3) ---
+      {
+        id: 'auditoria_codigo',
+        category: 'profesional',
+        catLabel: 'Profesional',
+        icon: '💻',
+        name: 'Auditoría y refactorización de código',
+        shortDesc: 'Causa raíz, rendimiento, Clean Architecture, código completo sin recortes y pruebas borde.',
+        combo: { env: 'ide', usecase: 'codigo', input: 'archivos_extensos', format: 'codigo_prod', friction: 'alucinaciones', reuse: 'plantilla' },
+        real: {
+          context: `[SELECCIONAR O ADJUNTAR LOS ARCHIVOS DEL MÓDULO EN EL IDE]\nStack: Kotlin + Jetpack Compose + Room (Clean Architecture) o VB.NET / SQL Server.\nProblema actual: la pantalla de búsqueda y filtrado de productos presenta tirones de UI cuando la tabla supera 2,000 registros y mezcla lógica de acceso a datos dentro del ViewModel/capa de presentación.`,
+          role: 'Arquitecto de Software Senior especializado en rendimiento, Clean Architecture y pruebas unitarias',
+          task: `1. Diagnostica la causa raíz del bloqueo de rendimiento y las violaciones de separación de responsabilidades usando únicamente los archivos adjuntos.\n2. Refactoriza la solución aplicando buenas prácticas (consulta paginada/indexada en hilo de E/S, repositorio desacoplado, debounce).\n3. Entrega el código completo compilable sin omitir bloques y define 4 casos de prueba borde (lista vacía, caracteres especiales, error de BD, concurrencia).`,
+          formatExtra: `Estructura en: 1) Diagnóstico de causa raíz (máx. 5 líneas), 2) Código completo con ruta exacta de archivo, 3) Casos de prueba borde (entrada -> salida esperada).`,
+          params: `- Stack: [Kotlin/Compose/Room o tu lenguaje]\n- Restricción: [No agregar librerías externas pesadas ni romper interfaces públicas]`
+        }
+      },
+      {
+        id: 'contratos_pdf',
+        category: 'profesional',
+        catLabel: 'Profesional',
+        icon: '📄',
+        name: 'Revisión de contratos o PDFs largos',
+        shortDesc: 'Analizar contrato de renta o políticas de 50 páginas detectando riesgos con página exacta.',
+        combo: { env: 'aistudio', usecase: 'documentos', input: 'archivos_extensos', format: 'tablas', friction: 'alucinaciones', reuse: 'plantilla' },
+        real: {
+          context: `[ADJUNTAR PDF COMPLETO: Contrato de arrendamiento o Políticas de publicación de tienda de apps de ~50 páginas]\nRegla absoluta: analiza solo el texto adjunto sin usar memoria externa. Si un requisito no figura explícitamente en el documento, escribe [NO CONSTA EN EL DOCUMENTO].`,
+          role: 'auditor documental senior especializado en análisis de contratos, cumplimiento normativo y detección de riesgos',
+          task: `Revisa todo el PDF adjunto y extrae con cita exacta de sección y página:\n1. Cláusulas de riesgo, penalizaciones económicas, renovaciones automáticas o causas de rescisión/bloqueo.\n2. Obligaciones y plazos críticos que debo cumplir antes de firmar o publicar.\n3. Ambigüedades o vacíos que convenga negociar o aclarar por escrito.`,
+          formatExtra: `Devuelve una tabla en Markdown con columnas: | Tema / Cláusula | Riesgo u obligación detectada | Cita exacta (Sección y pág.) | Nivel de riesgo (Alto/Medio/Bajo) | Acción sugerida |.`,
+          params: `- Documento: [Contrato de renta / Políticas de plataforma]\n- Enfoque: [Detección de penalizaciones, letras pequeñas y requisitos obligatorios]`
+        }
+      },
+      {
+        id: 'extractor_json',
+        category: 'profesional',
+        catLabel: 'Profesional',
+        icon: '⚙️',
+        name: 'Extractor automático a JSON',
+        shortDesc: 'Convertir mensajes desordenados de pedidos por WhatsApp en JSON estricto sin texto extra.',
+        combo: { env: 'aistudio', usecase: 'automatizacion', input: 'transcripciones', format: 'json', friction: 'relleno', reuse: 'sistema' },
+        real: {
+          context: `Mensaje recibido por WhatsApp:\n"Hola buenas tardes soy Carlos Méndez, me puedes apartar 2 hamburguesas dobles sin cebolla, 1 crepa de nutella con fresa y 2 malteadas de chocolate para pasar hoy 21 de nov a las 8pm? Serían $350 verdad? Ya te transferí ahorita te mando comprobante."`,
+          role: 'motor determinista de extracción de pedidos para integración directa con base de datos o hoja de cálculo',
+          task: `Extrae del mensaje del cliente: nombre del cliente, lista detallada de productos con notas, monto total numérico, fecha en formato ISO (YYYY-MM-DD), hora solicitada y estado del pedido (PENDIENTE_PAGO | PAGADO | POR_CONFIRMAR). No incluyas nada fuera del objeto JSON.`,
+          formatExtra: `Responde ÚNICAMENTE con un objeto JSON válido sin cercas markdown ni comentarios.\nEsquema: {"cliente":"string|null","productos":[{"nombre":"string","cantidad":"number","notas":"string|null"}],"monto_total":"number|null","fecha_iso":"YYYY-MM-DD|null","hora":"string|null","estado":"PENDIENTE_PAGO|PAGADO|POR_CONFIRMAR"}`,
+          params: `- Uso persistente en System Instructions de Google AI Studio (temperatura 0.0–0.1).`
+        }
+      }
+    ];
+
+    const PRESET_MAP = {};
+    PRESETS.forEach((p) => (PRESET_MAP[p.id] = p));
+
+    // Ejemplos reales genéricos por caso de uso (cuando no hay un preset específico activo)
+    const GENERIC_REAL_BY_USECASE = {
+      codigo: PRESET_MAP.auditoria_codigo.real,
+      documentos: PRESET_MAP.contratos_pdf.real,
+      estudio: PRESET_MAP.estudio_base.real,
+      contenido: PRESET_MAP.maestra_primaria.real,
+      estrategia: PRESET_MAP.comida_rapida.real,
+      automatizacion: PRESET_MAP.taxista.real
+    };
+
+    // =========================================================================
+    // 3. ESTADO GLOBAL DE LA APLICACIÓN
+    // =========================================================================
+    const state = {
+      explainMode: 'simple', // 'simple' | 'tech'
+      activeTab: 'builder',  // 'builder' | 'compare' | 'matrix'
+      presetCategory: 'all', // 'all' | 'familia' | 'cotidiano' | 'profesional'
+      activePresetId: 'estudio_base',
+      builder: { ...PRESET_MAP.estudio_base.combo },
+      fillExample: false,
+      xmlFormat: true,
+      colorBlocks: true,
+      compare: {
+        base: { ...PRESET_MAP.estudio_base.combo },
+        varyKey: 'input',
+        optionA: 'texto_breve',
+        optionB: 'archivos_extensos'
+      },
+      matrixFilter: 'all',
+      matrixCardFormat: {} // Por tarjeta: 'xml' | 'simple'
+    };
+
+    // =========================================================================
+    // 4. UTILIDADES
+    // =========================================================================
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    let toastTimer = null;
+    function showToast(msg, icon) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      document.getElementById('toastIcon').textContent = icon || '✅';
+      toast.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2600);
+    }
+
+    function copyTextToClipboard(text, successMsg) {
+      let ok = false;
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, text.length);
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (e) {
+        ok = false;
+      }
+
+      if (ok) {
+        showToast(successMsg || '¡Copiado al portapapeles!', '✅');
+        return true;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+          .then(() => showToast(successMsg || '¡Copiado al portapapeles!', '✅'))
+          .catch(() => showToast('Selecciona y copia el texto manualmente.', '⚠️'));
+        return true;
+      }
+      showToast('Selecciona y copia el texto manualmente.', '⚠️');
+      return false;
+    }
+
+    function computeComboNumber(cfg) {
+      const bases = QUESTIONS.map((q) => q.options.length);
+      const idxs = QUESTIONS.map((q) => Q_MAP[q.key].optMap[cfg[q.key]].index);
+      let n = 0;
+      for (let i = 0; i < idxs.length; i++) {
+        n = n * bases[i] + idxs[i];
+      }
+      return n + 1;
+    }
+
+    // =========================================================================
+    // 5. DETECTOR DE INCOHERENCIAS COMBINATORIAS
+    // =========================================================================
+    function detectConflicts(cfg) {
+      const list = [];
+
+      if (cfg.env === 'deepresearch' && cfg.reuse === 'sistema') {
+        list.push({
+          title: 'Deep Research + Instrucciones de sistema persistentes',
+          simple: 'Deep Research sirve para hacer investigaciones puntuales en internet, no tiene una caja de "reglas fijas" como los Gems o AI Studio.',
+          tech: 'El agente Deep Research se ejecuta por tarea y no soporta System Instructions persistentes. Conviene usar formato Táctico o Plantilla parametrizable.',
+          fix: { reuse: 'plantilla' }
+        });
+      }
+
+      if (cfg.usecase === 'documentos' && cfg.input === 'texto_breve') {
+        list.push({
+          title: 'Análisis de documentos largos + Texto breve',
+          simple: 'Elegiste analizar documentos largos, pero pusiste que solo darás un texto cortito. Conviene cambiar el insumo a Archivos extensos.',
+          tech: 'El caso de uso requiere auditoría de corpus extenso con citas de página, pero la entrada está fijada como texto breve.',
+          fix: { input: 'archivos_extensos' }
+        });
+      }
+
+      if (cfg.format === 'json' && cfg.usecase === 'estudio') {
+        list.push({
+          title: 'Aprendizaje / estudio guiado + Salida estricta en JSON',
+          simple: 'El formato JSON es para computadoras, no es cómodo para estudiar leyendo. Markdown o Enfoque socrático se entienden mucho mejor.',
+          tech: 'JSON estricto está diseñado para parseo programático, no lectura humana, salvo que exportes tarjetas de estudio a otra aplicación.',
+          fix: { format: 'markdown' }
+        });
+      }
+
+      if (cfg.env === 'deepresearch' && cfg.format === 'json') {
+        list.push({
+          title: 'Deep Research + Salida estricta en JSON',
+          simple: 'Deep Research arma reportes completos con fuentes de internet, no archivos de código JSON puro.',
+          tech: 'Deep Research produce informes narrativos con citas web; forzar JSON puro rompe la trazabilidad. Usa Tablas de decisión o Markdown.',
+          fix: { format: 'tablas' }
+        });
+      }
+
+      if (cfg.usecase === 'automatizacion' && cfg.format === 'socratico') {
+        list.push({
+          title: 'Automatización de datos + Enfoque socrático',
+          simple: 'Si quieres ordenar cuentas o automatizar datos rápido, no conviene que Gemini se detenga a hacerte preguntas paso a paso.',
+          tech: 'Un pipeline de extracción busca salida determinista en un turno; el enfoque socrático introduce diálogo multi-turno. Prefiere Tablas o JSON.',
+          fix: { format: 'tablas' }
+        });
+      }
+
+      if (cfg.env === 'web' && cfg.reuse === 'sistema') {
+        list.push({
+          title: 'Web / App normal + Instrucciones de sistema persistentes',
+          simple: 'En el chat normal no hay espacio separado para guardar reglas fijas. Si quieres que siempre las recuerde, cámbialo a Gems personalizados.',
+          tech: 'La app web estándar no expone canal System dedicado. Migra el entorno a Gems o Google AI Studio para persistencia real.',
+          fix: { env: 'gems' }
+        });
+      }
+
+      if (cfg.env === 'ide' && cfg.input === 'audiovideo') {
+        list.push({
+          title: 'Integración en IDE + Audio o video',
+          simple: 'Los editores de programación trabajan con código e imágenes, normalmente no dejan subir audios o videos.',
+          tech: 'Las integraciones en IDE rara vez admiten ingesta nativa de audio/video. Usa Google AI Studio o Gemini Web para archivos multimedia.',
+          fix: { env: 'aistudio' }
+        });
+      }
+
+      if (cfg.env === 'deepresearch' && cfg.input === 'archivos_extensos') {
+        list.push({
+          title: 'Deep Research + Archivos extensos locales',
+          simple: 'Deep Research brilla buscando información en internet. Si solo quieres revisar tus propios PDFs, Google AI Studio o Gemini Web es más preciso.',
+          tech: 'Deep Research prioriza síntesis web externa; para grounding cerrado sobre PDFs o repositorios propios conviene Google AI Studio.',
+          fix: { env: 'aistudio' }
+        });
+      }
+
+      return list;
+    }
+
+    // =========================================================================
+    // 6. MOTOR ENSAMBLADOR DE PROMPTS (XML vs SIMPLE + EJEMPLO REAL)
+    // =========================================================================
+    function getActiveRealData(cfg, presetId) {
+      if (presetId && PRESET_MAP[presetId] && PRESET_MAP[presetId].combo.usecase === cfg.usecase) {
+        return PRESET_MAP[presetId].real;
+      }
+      return GENERIC_REAL_BY_USECASE[cfg.usecase] || PRESET_MAP.estudio_base.real;
+    }
+
+    function buildPromptBlocks(cfg, options) {
+      const useXml = options.xmlFormat;
+      const fillReal = options.fillExample;
+      const presetId = options.presetId || null;
+
+      const envOpt = Q_MAP.env.optMap[cfg.env];
+      const ucOpt = Q_MAP.usecase.optMap[cfg.usecase];
+      const inOpt = Q_MAP.input.optMap[cfg.input];
+      const fmtOpt = Q_MAP.format.optMap[cfg.format];
+      const fricOpt = Q_MAP.friction.optMap[cfg.friction];
+      const reuseOpt = Q_MAP.reuse.optMap[cfg.reuse];
+
+      const real = fillReal ? getActiveRealData(cfg, presetId) : null;
+      const presetMatchesFormat = presetId && PRESET_MAP[presetId] && PRESET_MAP[presetId].combo.format === cfg.format;
+      const presetMatchesInput = presetId && PRESET_MAP[presetId] && PRESET_MAP[presetId].combo.input === cfg.input;
+
+      // Construir cada bloque respetando XML vs Simple y Ejemplo Real vs Plantilla
+      function makeInputText() {
+        if (!fillReal) return useXml ? inOpt.xml : inOpt.simple;
+        const baseSnippet = useXml ? inOpt.xml : inOpt.simple;
+        if (presetMatchesInput || cfg.input === 'texto_breve' || cfg.input === 'archivos_extensos' || cfg.input === 'imagenes' || cfg.input === 'transcripciones') {
+          if (useXml) {
+            return `<contexto>\n${real.context}\n</contexto>`;
+          }
+          return `MI SITUACIÓN / MATERIAL:\n${real.context}`;
+        }
+        // Si el usuario cambió manualmente el tipo de insumo (ej. a audio o hilos largos)
+        return useXml
+          ? `<contexto>\n${real.context}\n\n[Nota de insumo: ${inOpt.label}]\n${inOpt.simple}\n</contexto>`
+          : `MI SITUACIÓN / MATERIAL (${inOpt.label}):\n${real.context}\n\n${inOpt.simple}`;
+      }
+
+      function makeUsecaseText() {
+        if (!fillReal) return useXml ? ucOpt.xml : ucOpt.simple;
+        if (useXml) {
+          return `<rol>\nActúa como un ${real.role}.\n</rol>\n<tarea>\n${real.task}\n</tarea>`;
+        }
+        return `TU ROL:\nActúa como un ${real.role}.\n\nTU TAREA:\n${real.task}`;
+      }
+
+      function makeFormatText() {
+        const base = useXml ? fmtOpt.xml : fmtOpt.simple;
+        if (!fillReal || !presetMatchesFormat || !real.formatExtra) return base;
+        if (useXml) {
+          return `<formato_salida>\n${real.formatExtra}\n</formato_salida>`;
+        }
+        return `CÓMO ENTREGAR LA RESPUESTA:\n${real.formatExtra}`;
+      }
+
+      function makeEnvText() {
+        return useXml ? envOpt.xml : envOpt.simple;
+      }
+
+      function makeFrictionText() {
+        return useXml ? fricOpt.xml : fricOpt.simple;
+      }
+
+      function makeReuseText() {
+        const base = useXml ? reuseOpt.xml : reuseOpt.simple;
+        if (!fillReal || !real.params) return base;
+        if (cfg.reuse === 'plantilla') {
+          return useXml
+            ? `<parametros_aplicados>\n${real.params}\n</parametros_aplicados>`
+            : `DATOS DE ESTE EJEMPLO:\n${real.params}`;
+        }
+        if (cfg.reuse === 'sistema') {
+          return useXml
+            ? `<modo_persistente>\n${real.params}\n</modo_persistente>`
+            : `CÓMO GUARDARLO PARA USO DIARIO:\n${real.params}`;
+        }
+        return base;
+      }
+
+      const isSystemArch = (cfg.reuse === 'sistema' || cfg.env === 'gems') && cfg.env !== 'deepresearch';
+      const blocks = [];
+
+      if (isSystemArch) {
+        // Separación System (Fijo) -> User (Insumo diario)
+        blocks.push({ key: 'reuse', num: 6, label: `P6. Reutilización · ${reuseOpt.label}`, text: makeReuseText() });
+        blocks.push({ key: 'env', num: 1, label: `P1. Entorno · ${envOpt.label}`, text: makeEnvText() });
+        blocks.push({ key: 'usecase', num: 2, label: `P2. Caso de uso · ${ucOpt.label}`, text: makeUsecaseText() });
+        blocks.push({ key: 'friction', num: 5, label: `P5. Fricción · ${fricOpt.label}`, text: makeFrictionText() });
+        blocks.push({ key: 'format', num: 4, label: `P4. Formato · ${fmtOpt.label}`, text: makeFormatText() });
+        blocks.push({
+          key: 'input',
+          num: 3,
+          label: `P3. Insumo (Esto va en tu mensaje del día) · ${inOpt.label}`,
+          text: makeInputText()
+        });
+      } else {
+        // Regla de oro Gemini: Contexto/Insumo ARRIBA -> Instrucciones, Reglas y Formato ABAJO
+        blocks.push({ key: 'input', num: 3, label: `P3. Insumo (Primero arriba en Gemini) · ${inOpt.label}`, text: makeInputText() });
+        blocks.push({ key: 'env', num: 1, label: `P1. Entorno · ${envOpt.label}`, text: makeEnvText() });
+        blocks.push({ key: 'usecase', num: 2, label: `P2. Caso de uso · ${ucOpt.label}`, text: makeUsecaseText() });
+        blocks.push({ key: 'friction', num: 5, label: `P5. Fricción · ${fricOpt.label}`, text: makeFrictionText() });
+        blocks.push({ key: 'format', num: 4, label: `P4. Formato · ${fmtOpt.label}`, text: makeFormatText() });
+        blocks.push({ key: 'reuse', num: 6, label: `P6. Reutilización · ${reuseOpt.label}`, text: makeReuseText() });
+      }
+
+      return blocks;
+    }
+
+    function blocksToPlainText(blocks) {
+      return blocks.map((b) => b.text).join('\n\n');
+    }
+
+    // =========================================================================
+    // 7. CONTROLADORES DE INTERACCIÓN GLOBAL Y MODAL
+    // =========================================================================
+    function setExplainMode(mode) {
+      state.explainMode = mode;
+      renderAll();
+    }
+
+    function setActiveTab(tab) {
+      state.activeTab = tab;
+      renderTabs();
+      if (tab === 'builder') renderBuilder();
+      if (tab === 'compare') renderCompare();
+      if (tab === 'matrix') renderMatrix();
+    }
+
+    function openHelpModal() {
+      document.getElementById('helpModal').classList.remove('hidden');
+    }
+
+    function closeHelpModal() {
+      document.getElementById('helpModal').classList.add('hidden');
+    }
+
+    function onModalBackdropClick(ev) {
+      if (ev.target && ev.target.id === 'helpModal') {
+        closeHelpModal();
+      }
+    }
+
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') {
+        closeHelpModal();
+      }
+    });
+
+    // =========================================================================
+    // 8. RENDERIZADO DE CABECERA, BANNER Y PESTAÑAS
+    // =========================================================================
+    function renderHeaderAndBanner() {
+      const isSimple = state.explainMode === 'simple';
+      const btnSimple = document.getElementById('btnModeSimple');
+      const btnTech = document.getElementById('btnModeTech');
+
+      btnSimple.className = 'mode-btn' + (isSimple ? ' active-simple' : '');
+      btnTech.className = 'mode-btn' + (!isSimple ? ' active-tech' : '');
+
+      const banner = document.getElementById('modeBanner');
+      if (isSimple) {
+        banner.className = 'mode-banner simple';
+        banner.innerHTML = `
+          <div class="mode-banner-icon">🧩</div>
+          <div>
+            <div class="mode-banner-title">Modo Sencillo activado: aprende a pedirle cosas a Gemini paso a paso</div>
+            <p class="mode-banner-text">
+              Piensa en un buen mensaje como una receta de <strong>6 ingredientes</strong>. Elige una situación lista abajo (como Negocio de comida, Maestra, Taxista o Ventas) o cambia las cajitas de colores para ver qué cambia al instante.
+            </p>
+          </div>
+        `;
+      } else {
+        banner.className = 'mode-banner tech';
+        banner.innerHTML = `
+          <div class="mode-banner-icon">⚙️</div>
+          <div>
+            <div class="mode-banner-title">Modo Técnico activado: Prompt Engineering optimizado para Gemini Pro</div>
+            <p class="mode-banner-text">
+              Aplica las heurísticas de mayor impacto en Gemini: <strong>contexto masivo arriba / directivas abajo</strong>, <strong>delimitadores XML</strong> para aislar datos de instrucciones, <strong>grounding</strong> con escape hatch, <strong>System Instructions</strong>, <strong>Few-Shot</strong> y <strong>mitigación de sycophancy</strong>.
+            </p>
+          </div>
+        `;
+      }
+    }
+
+    function renderTabs() {
+      const map = [
+        { id: 'builder', btn: 'tabBtnBuilder', view: 'viewBuilder' },
+        { id: 'compare', btn: 'tabBtnCompare', view: 'viewCompare' },
+        { id: 'matrix', btn: 'tabBtnMatrix', view: 'viewMatrix' }
+      ];
+      map.forEach((t) => {
+        const active = state.activeTab === t.id;
+        document.getElementById(t.btn).className = 'tab-btn' + (active ? ' active' : '');
+        document.getElementById(t.view).classList.toggle('hidden', !active);
+      });
+    }
+
+    // =========================================================================
+    // 9. PESTAÑA 1: ARMADOR INTERACTIVO + 12 PRESETS
+    // =========================================================================
+    function setPresetCategory(cat) {
+      state.presetCategory = cat;
+      renderPresets();
+    }
+
+    function selectPreset(presetId) {
+      const preset = PRESET_MAP[presetId];
+      if (!preset) return;
+      state.activePresetId = presetId;
+      state.builder = { ...preset.combo };
+
+      // Regla especial: al elegir un preset de Familia y Oficios, activar ejemplo real automáticamente
+      if (preset.category === 'familia') {
+        state.fillExample = true;
+      }
+
+      document.getElementById('toggleFillExample').checked = state.fillExample;
+      renderBuilder();
+      showToast(`Preset "${preset.name}" cargado`, preset.icon);
+    }
+
+    function onBuilderChange(key, value) {
+      state.builder[key] = value;
+      // Si el usuario cambia el caso de uso manualmente, soltamos el preset fijo
+      if (state.activePresetId && PRESET_MAP[state.activePresetId].combo.usecase !== state.builder.usecase) {
+        state.activePresetId = null;
+      }
+      renderBuilder();
+    }
+
+    function applyConflictFix(idx) {
+      const conflicts = detectConflicts(state.builder);
+      const item = conflicts[idx];
+      if (!item) return;
+      Object.assign(state.builder, item.fix);
+      renderBuilder();
+      showToast('Combinación ajustada automáticamente', '🔧');
+    }
+
+    function randomizeBuilder() {
+      state.activePresetId = null;
+      QUESTIONS.forEach((q) => {
+        const rand = Math.floor(Math.random() * q.options.length);
+        state.builder[q.key] = q.options[rand].id;
+      });
+      renderBuilder();
+      showToast('Combinación aleatoria armada', '🎲');
+    }
+
+    function onToggleSwitch(prop, checked) {
+      state[prop] = checked;
+      renderBuilderOutput();
+      if (prop === 'xmlFormat') {
+        document.getElementById('xmlToggleLabel').textContent = checked
+          ? 'Formato XML (óptimo Gemini)'
+          : 'Formato simple (sin etiquetas)';
+      }
+    }
+
+    function copyBuilderPrompt() {
+      const blocks = buildPromptBlocks(state.builder, {
+        xmlFormat: state.xmlFormat,
+        fillExample: state.fillExample,
+        presetId: state.activePresetId
+      });
+      copyTextToClipboard(blocksToPlainText(blocks), '¡Prompt copiado! Pégalo directo en Gemini');
+      const btn = document.getElementById('btnCopyMain');
+      btn.classList.add('copied');
+      btn.textContent = '✅ ¡Copiado!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = '📋 Copiar Prompt';
+      }, 1800);
+    }
+
+    function downloadPrompt(ext) {
+      const blocks = buildPromptBlocks(state.builder, {
+        xmlFormat: state.xmlFormat,
+        fillExample: state.fillExample,
+        presetId: state.activePresetId
+      });
+      const plain = blocksToPlainText(blocks);
+      const presetObj = state.activePresetId ? PRESET_MAP[state.activePresetId] : null;
+      const baseName = presetObj ? `prompt-${presetObj.id}` : `prompt-gemini-${computeComboNumber(state.builder)}`;
+
+      let content = plain;
+      if (ext === 'md') {
+        const title = presetObj ? presetObj.name : `Combinación #${computeComboNumber(state.builder)}`;
+        content = `# Prompt para Gemini Pro: ${title}\n\n` +
+          `> Generado con el Laboratorio de Prompts para Gemini Pro\n\n` +
+          `\`\`\`\n${plain}\n\`\`\`\n`;
+      }
+
+      try {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${baseName}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(`Archivo ${baseName}.${ext} descargado`, '⬇️');
+      } catch (err) {
+        showToast('No se pudo descargar; usa el botón Copiar Prompt.', '⚠️');
+      }
+    }
+
+    function renderPresets() {
+      const cats = [
+        { id: 'all', label: 'Todos (12)' },
+        { id: 'familia', label: 'Familia y Oficios (6)' },
+        { id: 'cotidiano', label: 'Cotidianos (3)' },
+        { id: 'profesional', label: 'Profesionales (3)' }
+      ];
+
+      document.getElementById('presetCatFilters').innerHTML = cats.map((c) => `
+        <button type="button" class="cat-btn ${state.presetCategory === c.id ? 'active' : ''}" onclick="setPresetCategory('${c.id}')">
+          ${escapeHtml(c.label)}
+        </button>
+      `).join('');
+
+      const visible = PRESETS.filter((p) => state.presetCategory === 'all' || p.category === state.presetCategory);
+
+      document.getElementById('presetsGrid').innerHTML = visible.map((p) => {
+        const isActive = state.activePresetId === p.id;
+        return `
+          <button type="button" class="preset-item ${isActive ? 'active' : ''}" onclick="selectPreset('${p.id}')">
+            <div class="preset-top">
+              <span class="preset-name">${p.icon} ${escapeHtml(p.name)}</span>
+              <span class="preset-cat-badge cat-${p.category}">${escapeHtml(p.catLabel)}</span>
+            </div>
+            <span class="preset-desc">${escapeHtml(p.shortDesc)}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderConflicts() {
+      const wrap = document.getElementById('conflictsContainer');
+      const conflicts = detectConflicts(state.builder);
+      const isSimple = state.explainMode === 'simple';
+
+      if (conflicts.length === 0) {
+        wrap.classList.add('hidden');
+        wrap.innerHTML = '';
+        return;
+      }
+
+      wrap.classList.remove('hidden');
+      wrap.innerHTML = conflicts.map((c, idx) => `
+        <div class="conflict-box">
+          <div class="conflict-content">
+            <span style="font-size:1.25rem;line-height:1;">⚠️</span>
+            <div>
+              <div class="conflict-title">Sugerencia de compatibilidad: ${escapeHtml(c.title)}</div>
+              <div class="conflict-msg">${escapeHtml(isSimple ? c.simple : c.tech)}</div>
+            </div>
+          </div>
+          <button type="button" class="btn-fix" onclick="applyConflictFix(${idx})">
+            Ajustar automáticamente
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function renderBuilder() {
+      const isSimple = state.explainMode === 'simple';
+      renderPresets();
+
+      const comboNum = computeComboNumber(state.builder);
+      document.getElementById('comboCounter').textContent = `Combinación #${comboNum.toLocaleString('es-MX')} de 13,500`;
+
+      // Renderizar los 6 selectores
+      const controls = document.getElementById('builderControls');
+      controls.innerHTML = QUESTIONS.map((q) => {
+        const selOpt = q.optMap[state.builder[q.key]];
+        const desc = isSimple ? selOpt.simpleDesc : selOpt.techDesc;
+        const optsHtml = q.options.map((o) =>
+          `<option value="${o.id}" ${o.id === state.builder[q.key] ? 'selected' : ''}>${escapeHtml(o.label)}</option>`
+        ).join('');
+
+        return `
+          <div class="q-card q-color-${q.num}">
+            <div class="q-card-top">
+              <label for="sel-${q.key}" class="q-label">
+                <span>${q.icon}</span>
+                <span>${escapeHtml(q.fullTitle)}</span>
+              </label>
+              <span class="q-count badge-q${q.num}">${q.options.length} opc.</span>
+            </div>
+            <select id="sel-${q.key}" class="q-select" onchange="onBuilderChange('${q.key}', this.value)">
+              ${optsHtml}
+            </select>
+            <p class="q-desc">${escapeHtml(desc)}</p>
+          </div>
+        `;
+      }).join('');
+
+      renderConflicts();
+      renderBuilderOutput();
+    }
+
+    function renderBuilderOutput() {
+      const isSimple = state.explainMode === 'simple';
+      const blocks = buildPromptBlocks(state.builder, {
+        xmlFormat: state.xmlFormat,
+        fillExample: state.fillExample,
+        presetId: state.activePresetId
+      });
+
+      // Sincronizar interruptores
+      document.getElementById('toggleFillExample').checked = state.fillExample;
+      document.getElementById('toggleXmlFormat').checked = state.xmlFormat;
+      document.getElementById('toggleColorBlocks').checked = state.colorBlocks;
+      document.getElementById('xmlToggleLabel').textContent = state.xmlFormat
+        ? 'Formato XML (óptimo Gemini)'
+        : 'Formato simple (sin etiquetas)';
+
+      // Nota de arquitectura
+      const noteEl = document.getElementById('promptArchitectureNote');
+      const presetObj = state.activePresetId ? PRESET_MAP[state.activePresetId] : null;
+      const modeTag = state.fillExample
+        ? (presetObj ? `Ejemplo real: ${presetObj.icon} ${presetObj.name}` : 'Ejemplo real aplicado')
+        : 'Modo plantilla con [VARIABLES]';
+
+      if (state.builder.reuse === 'sistema' || state.builder.env === 'gems') {
+        noteEl.textContent = `${modeTag} · Arquitectura dividida: reglas fijas arriba y mensaje diario abajo.`;
+      } else {
+        noteEl.textContent = `${modeTag} · Orden óptimo Gemini: contexto arriba e instrucciones claras abajo.`;
+      }
+
+      const legend = document.getElementById('colorLegend');
+      const container = document.getElementById('promptOutputContainer');
+
+      if (state.colorBlocks) {
+        legend.classList.remove('hidden');
+        container.innerHTML = blocks.map((b) => {
+          const q = Q_MAP[b.key];
+          return `
+            <div class="prompt-block q-color-${b.num} bg-soft-q${b.num}">
+              <div class="prompt-block-header">
+                <span class="prompt-block-tag badge-q${b.num}">
+                  ${q.icon} ${escapeHtml(b.label)}
+                </span>
+              </div>
+              <pre class="prompt-pre">${escapeHtml(b.text)}</pre>
+            </div>
+          `;
+        }).join('');
+      } else {
+        legend.classList.add('hidden');
+        container.innerHTML = `
+          <div class="prompt-plain-box">
+            <pre class="prompt-pre">${escapeHtml(blocksToPlainText(blocks))}</pre>
+          </div>
+        `;
+      }
+
+      // Tarjeta ¿Por qué se armó así?
+      const whyBadge = document.getElementById('whyModeBadge');
+      const whyIntro = document.getElementById('whyOrderIntro');
+      if (isSimple) {
+        whyBadge.className = 'legend-chip badge-q3';
+        whyBadge.textContent = 'Modo Sencillo';
+        whyIntro.textContent = 'Cada una de tus 6 elecciones agregó una pieza distinta para ayudar a Gemini a responder exactamente como necesitas:';
+      } else {
+        whyBadge.className = 'legend-chip badge-q1';
+        whyBadge.textContent = 'Modo Técnico';
+        whyIntro.textContent = 'El ensamblador ordena las directivas según la arquitectura de atención de Gemini Pro (contexto antes que instrucciones, o separación System/User). Aporte técnico de cada módulo:';
+      }
+
+      document.getElementById('whyReasonsGrid').innerHTML = QUESTIONS.map((q) => {
+        const opt = q.optMap[state.builder[q.key]];
+        const reason = isSimple ? opt.whySimple : opt.whyTech;
+        return `
+          <div class="why-item">
+            <div class="why-item-head">
+              <span class="why-dot dot-q${q.num}"></span>
+              <span class="why-item-title">P${q.num}. ${escapeHtml(opt.label)}</span>
+            </div>
+            <p class="why-item-text">${escapeHtml(reason)}</p>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // 10. PESTAÑA 2: COMPARADOR A/B
+    // =========================================================================
+    function syncCompareFromBuilder() {
+      state.compare.base = { ...state.builder };
+      const q = Q_MAP[state.compare.varyKey];
+      state.compare.optionA = state.builder[state.compare.varyKey];
+      const alt = q.options.find((o) => o.id !== state.compare.optionA) || q.options[0];
+      state.compare.optionB = alt.id;
+      renderCompare();
+      showToast('Configuración traída desde el Armador', '🔄');
+    }
+
+    function resetCompareDefault() {
+      state.compare = {
+        base: { ...PRESET_MAP.estudio_base.combo },
+        varyKey: 'input',
+        optionA: 'texto_breve',
+        optionB: 'archivos_extensos'
+      };
+      renderCompare();
+      showToast('Comparación base restaurada (Texto breve vs Archivos extensos)', '📘');
+    }
+
+    function onCompareQuestionChange(newKey) {
+      state.compare.varyKey = newKey;
+      const q = Q_MAP[newKey];
+      state.compare.optionA = state.compare.base[newKey];
+      const alt = q.options.find((o) => o.id !== state.compare.optionA) || q.options[0];
+      state.compare.optionB = alt.id;
+      renderCompare();
+    }
+
+    function onCompareOptionChange(side, value) {
+      if (side === 'A') state.compare.optionA = value;
+      else state.compare.optionB = value;
+      renderCompare();
+    }
+
+    function onCompareFixedChange(key, value) {
+      state.compare.base[key] = value;
+      renderCompare();
+    }
+
+    function copyComparePrompt(side) {
+      const cfg = {
+        ...state.compare.base,
+        [state.compare.varyKey]: side === 'A' ? state.compare.optionA : state.compare.optionB
+      };
+      const blocks = buildPromptBlocks(cfg, { xmlFormat: state.xmlFormat, fillExample: false });
+      copyTextToClipboard(blocksToPlainText(blocks), `Prompt de la Versión ${side} copiado`);
+    }
+
+    function renderCompare() {
+      const isSimple = state.explainMode === 'simple';
+      const varyQ = Q_MAP[state.compare.varyKey];
+
+      document.getElementById('compareSubtitle').textContent = isSimple
+        ? 'Mantenemos 5 piezas iguales y cambiamos solo 1 para ver exactamente qué parte del prompt cambia.'
+        : 'Aislamiento controlado de 1 variable: inspecciona la mutación exacta del bloque y su impacto en Gemini Pro.';
+
+      document.getElementById('compareQuestionSelect').innerHTML = QUESTIONS.map((q) =>
+        `<option value="${q.key}" ${q.key === state.compare.varyKey ? 'selected' : ''}>${q.icon} ${escapeHtml(q.fullTitle)}</option>`
+      ).join('');
+
+      document.getElementById('compareOptionASelect').innerHTML = varyQ.options.map((o) =>
+        `<option value="${o.id}" ${o.id === state.compare.optionA ? 'selected' : ''}>${escapeHtml(o.label)}</option>`
+      ).join('');
+
+      document.getElementById('compareOptionBSelect').innerHTML = varyQ.options.map((o) =>
+        `<option value="${o.id}" ${o.id === state.compare.optionB ? 'selected' : ''}>${escapeHtml(o.label)}</option>`
+      ).join('');
+
+      // 5 preguntas fijas
+      document.getElementById('compareFixedControls').innerHTML = QUESTIONS.filter((q) => q.key !== state.compare.varyKey).map((q) => {
+        const opts = q.options.map((o) =>
+          `<option value="${o.id}" ${o.id === state.compare.base[q.key] ? 'selected' : ''}>${escapeHtml(o.label)}</option>`
+        ).join('');
+        return `
+          <div>
+            <label class="compare-field-label">${q.icon} P${q.num}. ${escapeHtml(q.shortTitle)}</label>
+            <select class="q-select" style="padding:7px 9px;font-size:0.8rem;" onchange="onCompareFixedChange('${q.key}', this.value)">
+              ${opts}
+            </select>
+          </div>
+        `;
+      }).join('');
+
+      const cfgA = { ...state.compare.base, [state.compare.varyKey]: state.compare.optionA };
+      const cfgB = { ...state.compare.base, [state.compare.varyKey]: state.compare.optionB };
+
+      const blocksA = buildPromptBlocks(cfgA, { xmlFormat: state.xmlFormat, fillExample: false });
+      const blocksB = buildPromptBlocks(cfgB, { xmlFormat: state.xmlFormat, fillExample: false });
+
+      const mapA = {};
+      blocksA.forEach((b) => (mapA[b.key] = b.text));
+      const mapB = {};
+      blocksB.forEach((b) => (mapB[b.key] = b.text));
+
+      const optA = varyQ.optMap[state.compare.optionA];
+      const optB = varyQ.optMap[state.compare.optionB];
+
+      document.getElementById('compareTitleA').textContent = optA.label;
+      document.getElementById('compareTitleB').textContent = optB.label;
+
+      const renderPane = (blocks, otherMap, side) => blocks.map((b) => {
+        const q = Q_MAP[b.key];
+        const changed = b.key === state.compare.varyKey || b.text !== otherMap[b.key];
+        if (changed) {
+          return `
+            <div class="diff-block-changed ${side === 'B' ? 'b' : ''}">
+              <div class="prompt-block-header">
+                <span class="prompt-block-tag badge-q${b.num}">${q.icon} P${q.num}. ${escapeHtml(q.shortTitle)}</span>
+                <span class="diff-pill">⚡ Cambió en ${side}</span>
+              </div>
+              <pre class="prompt-pre">${escapeHtml(b.text)}</pre>
+            </div>
+          `;
+        }
+        return `
+          <div class="diff-block-same">
+            <div class="prompt-block-header">
+              <span style="font-size:0.72rem;font-weight:700;color:var(--text-light);">${q.icon} P${q.num}. ${escapeHtml(q.shortTitle)} (Igual en ambos)</span>
+            </div>
+            <pre class="prompt-pre" style="font-size:0.74rem;color:var(--text-muted);">${escapeHtml(b.text)}</pre>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('comparePromptA').innerHTML = renderPane(blocksA, mapB, 'A');
+      document.getElementById('comparePromptB').innerHTML = renderPane(blocksB, mapA, 'B');
+
+      // Recuadro comparativo
+      const box = document.getElementById('compareConclusionBox');
+      if (optA.id === optB.id) {
+        box.innerHTML = `
+          <div style="font-size:0.92rem;font-weight:800;">🔍 A y B tienen la misma opción seleccionada</div>
+          <p style="font-size:0.83rem;color:var(--text-muted);margin-top:4px;">Elige dos opciones distintas arriba para ver resaltado qué bloque del prompt cambia y por qué importa en Gemini Pro.</p>
+        `;
+      } else {
+        const expA = isSimple ? optA.whySimple : optA.whyTech;
+        const expB = isSimple ? optB.whySimple : optB.whyTech;
+        box.innerHTML = `
+          <div style="font-size:0.95rem;font-weight:800;color:#1e3a8a;">
+            💡 ¿Qué cambió y por qué importa en Gemini Pro? (${escapeHtml(varyQ.shortTitle)})
+          </div>
+          <div class="insight-grid">
+            <div class="insight-col" style="border-color:var(--q1-border);">
+              <div style="font-weight:800;color:var(--q1-text);margin-bottom:4px;">En A (${escapeHtml(optA.label)}):</div>
+              <p style="color:var(--text-muted);">${escapeHtml(expA)}</p>
+            </div>
+            <div class="insight-col" style="border-color:var(--q3-border);">
+              <div style="font-weight:800;color:var(--q3-text);margin-bottom:4px;">En B (${escapeHtml(optB.label)}):</div>
+              <p style="color:var(--text-muted);">${escapeHtml(expB)}</p>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // =========================================================================
+    // 11. PESTAÑA 3: MATRIZ DE LAS 30 PIEZAS MODULARES
+    // =========================================================================
+    function setMatrixFilter(key) {
+      state.matrixFilter = key;
+      renderMatrix();
+    }
+
+    function setPieceCardFormat(cardKey, fmt) {
+      state.matrixCardFormat[cardKey] = fmt;
+      renderMatrix();
+    }
+
+    function copyPieceSnippet(qKey, optId) {
+      const opt = Q_MAP[qKey].optMap[optId];
+      const cardKey = `${qKey}:${optId}`;
+      const fmt = state.matrixCardFormat[cardKey] || (state.xmlFormat ? 'xml' : 'simple');
+      const snippet = fmt === 'xml' ? opt.xml : opt.simple;
+      copyTextToClipboard(snippet, `Pieza "${opt.label}" (${fmt.toUpperCase()}) copiada`);
+    }
+
+    function usePieceInBuilder(qKey, optId) {
+      state.builder[qKey] = optId;
+      if (state.activePresetId && PRESET_MAP[state.activePresetId].combo.usecase !== state.builder.usecase) {
+        state.activePresetId = null;
+      }
+      setActiveTab('builder');
+      const label = Q_MAP[qKey].optMap[optId].label;
+      showToast(`"${label}" aplicada en el Armador`, '🧩');
+    }
+
+    function renderMatrix() {
+      const isSimple = state.explainMode === 'simple';
+      const query = (document.getElementById('matrixSearchInput').value || '').trim().toLowerCase();
+
+      document.getElementById('matrixSubtitle').textContent = isSimple
+        ? 'Las 30 piezas sueltas que forman las 13,500 combinaciones. Puedes ver cada una en XML o en español simple.'
+        : 'Catálogo completo de los 30 bloques atómicos (5+6+6+5+5+3). Inspecciona el fragmento exacto en formato XML o simple.';
+
+      // Filtros
+      let filtersHtml = `
+        <button type="button" class="filter-chip ${state.matrixFilter === 'all' ? 'active' : ''}" onclick="setMatrixFilter('all')">
+          Todas (30)
+        </button>
+      `;
+      QUESTIONS.forEach((q) => {
+        filtersHtml += `
+          <button type="button" class="filter-chip ${state.matrixFilter === q.key ? 'active' : ''}" onclick="setMatrixFilter('${q.key}')">
+            ${q.icon} P${q.num}. ${escapeHtml(q.shortTitle)} (${q.options.length})
+          </button>
+        `;
+      });
+      document.getElementById('matrixFilters').innerHTML = filtersHtml;
+
+      // Tarjetas
+      const items = [];
+      QUESTIONS.forEach((q) => {
+        if (state.matrixFilter !== 'all' && state.matrixFilter !== q.key) return;
+        q.options.forEach((opt) => {
+          const hay = `${q.shortTitle} ${opt.label} ${opt.simpleDesc} ${opt.techDesc} ${opt.xml} ${opt.simple}`.toLowerCase();
+          if (query && !hay.includes(query)) return;
+          items.push({ q, opt });
+        });
+      });
+
+      const grid = document.getElementById('matrixGrid');
+      if (items.length === 0) {
+        grid.innerHTML = `<div class="card" style="padding:28px;text-align:center;grid-column:1/-1;color:var(--text-muted);">No se encontraron piezas con "${escapeHtml(query)}".</div>`;
+        return;
+      }
+
+      grid.innerHTML = items.map(({ q, opt }) => {
+        const cardKey = `${q.key}:${opt.id}`;
+        const fmt = state.matrixCardFormat[cardKey] || (state.xmlFormat ? 'xml' : 'simple');
+        const snippet = fmt === 'xml' ? opt.xml : opt.simple;
+        const desc = isSimple ? opt.simpleDesc : opt.techDesc;
+        const why = isSimple ? opt.whySimple : opt.whyTech;
+
+        return `
+          <article class="piece-card q-color-${q.num}">
+            <div>
+              <span class="prompt-block-tag badge-q${q.num}">${q.icon} P${q.num}. ${escapeHtml(q.shortTitle)}</span>
+              <h3 class="piece-title">${escapeHtml(opt.label)}</h3>
+              <p class="q-desc"><strong>Qué es:</strong> ${escapeHtml(desc)}</p>
+              <div class="piece-explain">
+                <strong>${isSimple ? 'Por qué ayuda:' : 'Impacto en Gemini Pro:'}</strong> ${escapeHtml(why)}
+              </div>
+
+              <div class="snippet-box">
+                <div class="snippet-head">
+                  <span class="snippet-label">Fragmento de prompt</span>
+                  <div class="mini-fmt-group">
+                    <button type="button" class="mini-fmt-btn ${fmt === 'xml' ? 'active' : ''}" onclick="setPieceCardFormat('${cardKey}', 'xml')">XML</button>
+                    <button type="button" class="mini-fmt-btn ${fmt === 'simple' ? 'active' : ''}" onclick="setPieceCardFormat('${cardKey}', 'simple')">Simple</button>
+                  </div>
+                </div>
+                <pre class="snippet-pre">${escapeHtml(snippet)}</pre>
+              </div>
+            </div>
+
+            <div class="piece-actions">
+              <button type="button" class="btn-secondary" onclick="copyPieceSnippet('${q.key}', '${opt.id}')">📋 Copiar pieza</button>
+              <button type="button" class="btn-primary" onclick="usePieceInBuilder('${q.key}', '${opt.id}')">🧩 Usar en el Armador</button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // 12. ARRANQUE INICIAL
+    // =========================================================================
+    function renderAll() {
+      renderHeaderAndBanner();
+      renderTabs();
+      renderBuilder();
+      renderCompare();
+      renderMatrix();
+    }
+
+    window.addEventListener('DOMContentLoaded', renderAll);
+  </script>
+</body>
+</html>
